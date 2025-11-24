@@ -3,21 +3,24 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>WebGL DOOM Clone</title>
+<title>WebGL DOOM Clone with HUD</title>
 <style>
-  html,body{margin:0;padding:0;height:100%;background:#000;display:flex;justify-content:center;align-items:center;}
-  canvas{width:640px;height:480px;cursor:crosshair;}
-  #hint{position:fixed;left:8px;bottom:8px;color:#ccc;font:12px/1 monospace;background:rgba(0,0,0,0.4);padding:6px 8px;border-radius:6px;}
+html,body{margin:0;padding:0;height:100%;background:#000;display:flex;justify-content:center;align-items:center;}
+#glcanvas{width:640px;height:480px;cursor:crosshair;}
+#overlay{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);pointer-events:none;}
+#hint{position:fixed;left:8px;bottom:8px;color:#ccc;font:12px/1 monospace;background:rgba(0,0,0,0.4);padding:6px 8px;border-radius:6px;}
 </style>
 </head>
 <body>
-<canvas id="game"></canvas>
+<canvas id="glcanvas" width="640" height="480"></canvas>
+<canvas id="overlay" width="640" height="480"></canvas>
 <div id="hint">`=Dev, M=Mouse Lock+Look, L=Layer Diagram</div>
 <script>
 // --- WebGL init ---
-const canvas = document.getElementById('game');
-const gl = canvas.getContext('webgl');
-canvas.width = 640; canvas.height = 480;
+const glCanvas = document.getElementById('glcanvas');
+const gl = glCanvas.getContext('webgl');
+const overlay = document.getElementById('overlay');
+const ctx2d = overlay.getContext('2d');
 
 // --- Shader helpers ---
 function compileShader(src, type){
@@ -36,7 +39,7 @@ function createProgram(vs, fs){
   return program;
 }
 
-// --- Shaders ---
+// --- Shaders (vertex + fragment for walls/floor/ceiling) ---
 const vsSrc = `
 attribute vec2 aPos;
 void main(){ gl_Position = vec4(aPos,0.0,1.0); }
@@ -44,8 +47,7 @@ void main(){ gl_Position = vec4(aPos,0.0,1.0); }
 const fsSrc = `
 precision mediump float;
 uniform vec2 uRes;
-uniform float uTime;
-uniform vec3 uPlayerPos; // x,y,eyeOffset
+uniform vec3 uPlayerPos;
 uniform float uAngle;
 uniform float uPitch;
 uniform vec2 uMapSize;
@@ -68,29 +70,26 @@ float mapValue(vec2 p){
   return m[yi*10+xi];
 }
 void main(){
-  vec2 uv=(gl_FragCoord.xy/uRes.xy)*2.0-1.0;
-  uv.x*=uRes.x/uRes.y;
-  vec3 col=vec3(0.0);
-  // simple floorcasting
-  float horizon=0.0;
-  float eyeH=uPlayerPos.z;
-  float fov=1.0472;
-  float rayDirXLeft=cos(uAngle-fov/2.0);
-  float rayDirYLeft=sin(uAngle-fov/2.0);
-  float rayDirXRight=cos(uAngle+fov/2.0);
-  float rayDirYRight=sin(uAngle+fov/2.0);
-  float screenY=(gl_FragCoord.y/uRes.y);
-  if(screenY<0.5){ col=vec3(0.6); } // ceiling
+  vec2 uv = (gl_FragCoord.xy/uRes)*2.0-1.0;
+  uv.x *= uRes.x/uRes.y;
+  vec3 col = vec3(0.0);
+  float horizon = 0.0;
+  float eyeH = uPlayerPos.z;
+  float fov = 1.0472;
+  vec2 rayLeft = vec2(cos(uAngle-fov/2.0), sin(uAngle-fov/2.0));
+  vec2 rayRight = vec2(cos(uAngle+fov/2.0), sin(uAngle+fov/2.0));
+  float screenY = (gl_FragCoord.y/uRes.y);
+  if(screenY < 0.5){ col = vec3(0.6); } // ceiling
   else{
-    float rowDist=eyeH*0.5/(screenY-0.5);
-    vec2 floorPos=uPlayerPos.xy+vec2(rayDirXLeft,rayDirYLeft)*rowDist + uv.x*vec2(rayDirXRight-rayDirXLeft,rayDirYRight-rayDirYLeft)*rowDist;
-    float m=mapValue(floorPos);
-    float checker=mod(floorPos.x+floorPos.y,2.0);
-    col=m>0.5?vec3(0.2):vec3(0.3+0.2*checker);
-    float shade=1.0/(rowDist*0.5+1.0);
-    col*=shade;
+    float rowDist = eyeH*0.5/(screenY-0.5);
+    vec2 floorPos = uPlayerPos.xy + rayLeft*rowDist + uv.x*(rayRight-rayLeft)*rowDist;
+    float m = mapValue(floorPos);
+    float checker = mod(floorPos.x+floorPos.y,2.0);
+    col = m>0.5?vec3(0.2):vec3(0.3+0.2*checker);
+    float shade = 1.0/(rowDist*0.5+1.0);
+    col *= shade;
   }
-  gl_FragColor=vec4(col,1.0);
+  gl_FragColor = vec4(col,1.0);
 }
 `;
 const vs = compileShader(vsSrc, gl.VERTEX_SHADER);
@@ -108,7 +107,6 @@ gl.vertexAttribPointer(aPos,2,gl.FLOAT,false,0,0);
 
 // --- Uniforms ---
 const uRes = gl.getUniformLocation(program,'uRes');
-const uTime = gl.getUniformLocation(program,'uTime');
 const uPlayerPos = gl.getUniformLocation(program,'uPlayerPos');
 const uAngle = gl.getUniformLocation(program,'uAngle');
 const uPitch = gl.getUniformLocation(program,'uPitch');
@@ -120,53 +118,81 @@ gl.uniform2f(uMapSize,10,10);
 gl.uniform1f(uCeilingH,8.0);
 
 // --- Player ---
-const player = {x:3.5,y:4.5,z:5.67,angle:0,pitch:0,radius:0.18,verticalVel:0,onFloor:true};
-const keys={}; const settings={walkSpeed:4,jumpHeight:2,jumpDuration:0.5,crouchDepth:1.5,crouchSpeed:5,mouseSensitivity:0.003};
+const player={x:3.5,y:4.5,z:5.67,angle:0,pitch:0,radius:0.18,verticalVel:0,onFloor:true};
+const keys={};
 let devMode=false;
 
 // --- Input ---
-window.addEventListener('keydown',e=>{ keys[e.key.toLowerCase()]=true; if(e.key==='`') devMode=!devMode; });
-window.addEventListener('keyup',e=>{ keys[e.key.toLowerCase()]=false; });
+window.addEventListener('keydown',e=>{keys[e.key.toLowerCase()]=true;if(e.key==='`') devMode=!devMode;});
+window.addEventListener('keyup',e=>{keys[e.key.toLowerCase()]=false;});
 document.addEventListener('mousemove',e=>{
-  if(document.pointerLockElement===canvas){ 
-    player.angle+=e.movementX*settings.mouseSensitivity;
-    player.pitch-=e.movementY*settings.mouseSensitivity;
+  if(document.pointerLockElement===glCanvas){
+    player.angle+=e.movementX*0.003;
+    player.pitch-=e.movementY*0.003;
     player.pitch=Math.max(-1.57,Math.min(1.57,player.pitch));
   }
 });
-canvas.addEventListener('click',()=>{ if(!devMode) canvas.requestPointerLock(); });
+glCanvas.addEventListener('click',()=>{if(!devMode)glCanvas.requestPointerLock();});
 
 // --- Physics ---
 const GRAVITY=12;
 function handleInput(dt){
-  let dx=0,dy=0,speed=settings.walkSpeed*dt;
-  if(keys['w']){ dx+=Math.cos(player.angle)*speed; dy+=Math.sin(player.angle)*speed; }
-  if(keys['s']){ dx-=Math.cos(player.angle)*speed; dy-=Math.sin(player.angle)*speed; }
-  if(keys['a']){ dx+=Math.sin(player.angle)*speed; dy-=Math.cos(player.angle)*speed; }
-  if(keys['d']){ dx-=Math.sin(player.angle)*speed; dy+=Math.cos(player.angle)*speed; }
-  player.x+=dx; player.y+=dy;
-  if((keys[' '] || keys['space']) && player.onFloor){
-    const t=settings.jumpDuration,h=settings.jumpHeight;
+  let dx=0,dy=0,speed=4*dt;
+  if(keys['w']){dx+=Math.cos(player.angle)*speed;dy+=Math.sin(player.angle)*speed;}
+  if(keys['s']){dx-=Math.cos(player.angle)*speed;dy-=Math.sin(player.angle)*speed;}
+  if(keys['a']){dx+=Math.sin(player.angle)*speed;dy-=Math.cos(player.angle)*speed;}
+  if(keys['d']){dx-=Math.sin(player.angle)*speed;dy+=Math.cos(player.angle)*speed;}
+  player.x+=dx;player.y+=dy;
+  if((keys[' ']||keys['space']) && player.onFloor){
+    const t=0.5,h=2;
     player.verticalVel=-(h+0.5*GRAVITY*t*t)/t;
     player.onFloor=false;
   }
   player.verticalVel+=GRAVITY*dt;
   player.z+=player.verticalVel*dt;
-  if(player.z>=5.67){ player.z=5.67; player.verticalVel=0; player.onFloor=true; }
-  if(keys['control']) player.z=Math.max(5.67-settings.crouchDepth,player.z-settings.crouchSpeed*dt);
-  else player.z=Math.min(5.67,player.z+settings.crouchSpeed*dt);
+  if(player.z>=5.67){player.z=5.67;player.verticalVel=0;player.onFloor=true;}
+  if(keys['control'])player.z=Math.max(5.67-1.5,player.z-5*dt);
+  else player.z=Math.min(5.67,player.z+5*dt);
+}
+
+// --- Overlay ---
+function renderOverlay(){
+  ctx2d.clearRect(0,0,640,480);
+  // simple mini-map
+  const scale=20,offX=640-10-10*scale,offY=480-10-10*scale;
+  ctx2d.fillStyle='rgba(0,0,0,0.5)';ctx2d.fillRect(offX-2,offY-2,scale*10+4,scale*10+4);
+  for(let y=0;y<10;y++){for(let x=0;x<10;x++){
+    let wall=[1,1,1,1,1,1,1,1,1,1,
+              1,0,0,0,0,0,0,0,0,1,
+              1,0,1,0,1,0,1,0,0,1,
+              1,0,0,0,0,0,0,1,0,1,
+              1,0,1,0,0,1,0,0,0,1,
+              1,0,0,0,1,0,0,0,0,1,
+              1,0,0,0,0,0,1,0,0,1,
+              1,0,0,1,0,0,0,0,0,1,
+              1,0,0,0,0,0,0,0,0,1,
+              1,1,1,1,1,1,1,1,1,1
+             ][y*10+x];
+    ctx2d.fillStyle=wall?'#111':'#ddd';
+    ctx2d.fillRect(offX+x*scale,offY+y*scale,scale-1,scale-1);
+  }}
+  // player
+  ctx2d.fillStyle='red';
+  ctx2d.beginPath();
+  ctx2d.arc(offX+player.x*scale,offY+player.y*scale,4,0,6.28);
+  ctx2d.fill();
 }
 
 // --- Main loop ---
 let last=performance.now();
 function loop(now){
-  const dt=Math.min(0.05,(now-last)/1000); last=now;
+  const dt=Math.min(0.05,(now-last)/1000);last=now;
   handleInput(dt);
-  gl.uniform1f(uTime,now*0.001);
   gl.uniform3f(uPlayerPos,player.x,player.y,player.z);
   gl.uniform1f(uAngle,player.angle);
   gl.uniform1f(uPitch,player.pitch);
   gl.drawArrays(gl.TRIANGLE_STRIP,0,4);
+  renderOverlay();
   requestAnimationFrame(loop);
 }
 requestAnimationFrame(loop);
