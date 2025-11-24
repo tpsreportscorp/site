@@ -1,97 +1,118 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<title>Mini DOOM Clone - Layer Diagram Labeled</title>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Minimal DOOM Clone — Clean Build + Solid Floor</title>
 <style>
-  html, body {
-    margin: 0;
-    padding: 0;
-    overflow: hidden;
-    background: black;
-    height: 100%;
-  }
-  canvas {
-    display: block;
-    width: 100%;
-    height: 100%;
-    image-rendering: pixelated;
-    cursor: crosshair;
-  }
+  html,body{margin:0;padding:0;height:100%;background:#000;}
+  canvas{display:block;width:100%;height:100%;image-rendering:pixelated;cursor:crosshair;}
+  /* small hint text when dev mode off */
+  #hint { position: fixed; left: 8px; bottom: 8px; color:#ccc; font:12px/1 monospace; background:rgba(0,0,0,0.4); padding:6px 8px; border-radius:6px;}
 </style>
 </head>
 <body>
 <canvas id="game"></canvas>
+<div id="hint">Backtick (`) = Dev mode, M = pointer lock + mouse look, L = Layer diagram</div>
+
 <script>
+/*
+  Minimal DOOM-like single-file engine (clean rebuild)
+  - Raycasting world
+  - Movement, collision, jump, crouch
+  - Pointer lock mouse look
+  - HUD overlays
+  - Solid floor drawn per-column (does NOT occlude walls/ceiling)
+*/
+
+// --- Canvas setup ---
 const canvas = document.getElementById('game');
-const ctx = canvas.getContext('2d');
-canvas.width = window.innerWidth;
-canvas.height = window.innerHeight;
+const ctx = canvas.getContext('2d', { alpha: false });
+function resize() {
+  canvas.width = Math.floor(window.innerWidth);
+  canvas.height = Math.floor(window.innerHeight);
+}
+window.addEventListener('resize', resize);
+resize();
 
-// Constants
-const UNIT_FT = 1;
-const PLAYER_HEIGHT_FT = 5.67;
-const WALL_HEIGHT_FT = 8;
-const PIXELS_PER_FT = 100;
+// --- Constants & units ---
+const PIXELS_PER_FT = 100;      // rendering scale (pixels per foot)
+const PLAYER_HEIGHT_FT = 5.67;  // player total height (for reasoning)
+const CEILING_HEIGHT_FT = 8;    // wall height / room height
+const GRAVITY = 12;             // ft/s^2 (game units)
+const MAX_RAY_DIST = 24;        // tiles
 
-// Map
+// --- Simple map (grid of tiles: 1 = wall, 0 = empty) ---
 const map = [
-  [1,1,1,1,1,1,1,1],
-  [1,0,0,0,0,0,0,1],
-  [1,0,1,0,1,0,0,1],
-  [1,0,0,0,0,1,0,1],
-  [1,0,1,0,0,0,0,1],
-  [1,0,0,0,1,0,0,1],
-  [1,0,0,0,0,0,0,1],
-  [1,1,1,1,1,1,1,1]
+  [1,1,1,1,1,1,1,1,1,1],
+  [1,0,0,0,0,0,0,0,0,1],
+  [1,0,1,0,1,0,1,0,0,1],
+  [1,0,0,0,0,0,0,1,0,1],
+  [1,0,1,0,0,1,0,0,0,1],
+  [1,0,0,0,1,0,0,0,0,1],
+  [1,0,0,0,0,0,1,0,0,1],
+  [1,0,0,1,0,0,0,0,0,1],
+  [1,0,0,0,0,0,0,0,0,1],
+  [1,1,1,1,1,1,1,1,1,1]
 ];
+const MAP_W = map[0].length;
+const MAP_H = map.length;
 
-// Player
+// --- Player state ---
 const player = {
-  x: 3.5, y: 3.5, angle: 0, pitch: 0, radius: 0.15,
-  eyeOffset: 0, verticalVel: 0, onFloor: true
+  x: 3.5,               // tile units
+  y: 4.5,
+  angle: 0,             // radians
+  pitch: 0,             // vertical look (radians)
+  radius: 0.18,         // collision radius (tiles)
+  eyeOffset: 0,         // vertical eye offset in feet (0 = standing on floor)
+  verticalVel: 0,       // ft/sec (negative = up)
+  onFloor: true
 };
 
-// Input
+// --- Controls & mode flags ---
 const keys = {};
-let devMode = false;
-let showLayerDiagram = false;
-
-// Settings
+let devMode = false;            // backtick toggles
+let showLayerDiagram = false;   // 'L' toggles
 const settings = {
-  jumpHeight: 2,
-  jumpDuration: 0.58,
-  crouchSpeed: 3,
-  mouseSensitivity: 0.002
+  walkSpeed: 4.0,       // ft/s
+  jumpHeight: 2.0,      // ft (apex above floor)
+  jumpDuration: 0.5,    // sec to apex
+  crouchDepth: 1.5,     // ft (eye moves down when crouch)
+  crouchSpeed: 5.0,     // ft/s
+  mouseSensitivity: 0.003
 };
-const GRAVITY = 12;
 
-// Keyboard
+// small hint visibility
+const hintDiv = document.getElementById('hint');
+function updateHint() { hintDiv.style.display = devMode ? 'none' : 'block'; }
+updateHint();
+
+// --- Input handling (supports arrow keys + WASD) ---
 window.addEventListener('keydown', e => {
   keys[e.key.toLowerCase()] = true;
-  keys[e.key] = true;
+  keys[e.key] = true; // keep original for 'ArrowUp' etc.
 
-  if(e.key === '`') devMode = !devMode;
-  if(e.key.toLowerCase() === 'l') showLayerDiagram = !showLayerDiagram;
+  if (e.key === '`') { devMode = !devMode; updateHint(); }
+  if (e.key.toLowerCase() === 'l') showLayerDiagram = !showLayerDiagram;
 
-  if(e.key.toLowerCase() === 'm' && !devMode){
-    if(document.pointerLockElement === canvas){
-      document.exitPointerLock();
-    } else {
-      canvas.requestPointerLock();
-    }
+  // Pointer lock toggle for mouse look: 'm'
+  if (e.key.toLowerCase() === 'm' && !devMode) {
+    if (document.pointerLockElement === canvas) document.exitPointerLock();
+    else canvas.requestPointerLock();
   }
 
-  if(devMode){
-    switch(e.key){
+  // dev quick controls to tweak settings with number keys
+  if (devMode) {
+    switch (e.key) {
       case '1': settings.jumpHeight += 0.1; break;
       case '2': settings.jumpHeight = Math.max(0.1, settings.jumpHeight - 0.1); break;
       case '3': settings.jumpDuration += 0.05; break;
       case '4': settings.jumpDuration = Math.max(0.05, settings.jumpDuration - 0.05); break;
       case '5': settings.crouchSpeed += 0.5; break;
       case '6': settings.crouchSpeed = Math.max(0.5, settings.crouchSpeed - 0.5); break;
-      case '7': settings.mouseSensitivity += 0.001; break;
-      case '8': settings.mouseSensitivity = Math.max(0.001, settings.mouseSensitivity - 0.001); break;
+      case '7': settings.mouseSensitivity += 0.0005; break;
+      case '8': settings.mouseSensitivity = Math.max(0.0005, settings.mouseSensitivity - 0.0005); break;
     }
   }
 });
@@ -100,271 +121,339 @@ window.addEventListener('keyup', e => {
   keys[e.key] = false;
 });
 
-// Mouse
+// Pointer lock mouse movement
+document.addEventListener('pointerlockchange', () => {
+  // no-op (we check pointerLockElement in mousemove)
+});
 document.addEventListener('mousemove', e => {
-  if(document.pointerLockElement === canvas){
+  if (document.pointerLockElement === canvas) {
     player.angle += e.movementX * settings.mouseSensitivity;
     player.pitch -= e.movementY * settings.mouseSensitivity;
-    player.pitch = Math.max(-Math.PI/2, Math.min(Math.PI/2, player.pitch));
+    const limit = Math.PI/2 - 0.01;
+    player.pitch = Math.max(-limit, Math.min(limit, player.pitch));
   }
 });
 
-// Collision
+// --- Utility functions ---
+function inMap(x, y) {
+  return x >= 0 && y >= 0 && x < MAP_W && y < MAP_H;
+}
+function tileAt(x, y) {
+  if (!inMap(x, y)) return 1; // treat out-of-bounds as wall
+  return map[Math.floor(y)][Math.floor(x)];
+}
+
+// --- Raycasting (returns distance in tiles) ---
+function castRay(px, py, angle) {
+  // DDA stepping with small steps; stops at MAX_RAY_DIST
+  let rx = px;
+  let ry = py;
+  const step = 0.02;
+  let traveled = 0;
+  const max = MAX_RAY_DIST;
+  while (traveled < max) {
+    rx += Math.cos(angle) * step;
+    ry += Math.sin(angle) * step;
+    traveled += step;
+    const tx = Math.floor(rx);
+    const ty = Math.floor(ry);
+    if (!inMap(tx, ty)) return max; // give max if out-of-bounds
+    if (map[ty][tx] === 1) {
+      return Math.hypot(rx - px, ry - py);
+    }
+  }
+  return max;
+}
+
+// --- Collision check (circle vs tile grid) ---
 function isColliding(x, y) {
   const r = player.radius;
   const minX = Math.floor(x - r);
   const maxX = Math.floor(x + r);
   const minY = Math.floor(y - r);
   const maxY = Math.floor(y + r);
-  for(let yy = minY; yy <= maxY; yy++) {
-    for(let xx = minX; xx <= maxX; xx++) {
-      if(map[yy] && map[yy][xx] === 1) return true;
+  for (let yy = minY; yy <= maxY; yy++) {
+    for (let xx = minX; xx <= maxX; xx++) {
+      if (!inMap(xx, yy)) return true;
+      if (map[yy][xx] === 1) return true;
     }
   }
   return false;
 }
 
-// Movement
+// --- Dev map editing (click mini-map) ---
+canvas.addEventListener('click', e => {
+  if (!devMode) return;
+  // mini-map bottom-right same as renderHUD uses:
+  const scale = 18;
+  const margin = 10;
+  const mapWpx = MAP_W * scale;
+  const mapHpx = MAP_H * scale;
+  const offsetX = canvas.width - mapWpx - margin;
+  const offsetY = canvas.height - mapHpx - margin;
+  const mx = e.clientX;
+  const my = e.clientY;
+  if (mx >= offsetX && mx < offsetX + mapWpx && my >= offsetY && my < offsetY + mapHpx) {
+    const gx = Math.floor((mx - offsetX) / scale);
+    const gy = Math.floor((my - offsetY) / scale);
+    if (inMap(gx, gy) && !(gx === Math.floor(player.x) && gy === Math.floor(player.y))) {
+      map[gy][gx] = map[gy][gx] === 1 ? 0 : 1;
+    }
+  }
+});
+
+// --- Physics & input handling ---
 function handleInput(delta) {
-  const speed = 3 * delta;
-  let newX = player.x;
-  let newY = player.y;
+  // movement in feet per second converted to tiles per second (1 tile = 1 unit)
+  const walkSpeedTiles = settings.walkSpeed /  (PIXELS_PER_FT / PIXELS_PER_FT); // same ft -> tile scale (1 tile is 1 unit)
+  // since our map uses 1 tile = 1 map unit = 1 "tile", but settings are in ft,
+  // we treat 1 tile ~= 1 ft for movement simplicity. (Adjust PIXELS_PER_FT independently)
+  const speed = settings.walkSpeed * delta; // ft moved in this frame -> treat as tiles for simplicity
 
-  if(keys['w'] || keys['arrowup']) { newX += Math.cos(player.angle) * speed; newY += Math.sin(player.angle) * speed; }
-  if(keys['s'] || keys['arrowdown']) { newX -= Math.cos(player.angle) * speed; newY -= Math.sin(player.angle) * speed; }
-  if(keys['a'] || keys['arrowleft']) { newX += Math.sin(player.angle) * speed; newY -= Math.cos(player.angle) * speed; }
-  if(keys['d'] || keys['arrowright']) { newX -= Math.sin(player.angle) * speed; newY += Math.cos(player.angle) * speed; }
+  let dx = 0, dy = 0;
+  // forward/back
+  if (keys['w'] || keys['arrowup']) { dx += Math.cos(player.angle) * speed; dy += Math.sin(player.angle) * speed; }
+  if (keys['s'] || keys['arrowdown']) { dx -= Math.cos(player.angle) * speed; dy -= Math.sin(player.angle) * speed; }
+  // strafing
+  if (keys['a'] || keys['arrowleft']) { dx += Math.sin(player.angle) * speed; dy -= Math.cos(player.angle) * speed; }
+  if (keys['d'] || keys['arrowright']) { dx -= Math.sin(player.angle) * speed; dy += Math.cos(player.angle) * speed; }
 
-  if(!isColliding(newX, player.y)) player.x = newX;
-  if(!isColliding(player.x, newY)) player.y = newY;
+  // attempt move with collision
+  let newX = player.x + dx;
+  let newY = player.y + dy;
+  // separate axis collision
+  if (!isColliding(newX, player.y)) player.x = newX;
+  if (!isColliding(player.x, newY)) player.y = newY;
 
-  // Jump
-  if(keys[' '] && player.onFloor){
-    player.verticalVel = -(settings.jumpHeight + 0.5 * GRAVITY * settings.jumpDuration ** 2) / settings.jumpDuration;
+  // Jump (space) — only when on floor
+  if ((keys[' '] || keys['space']) && player.onFloor) {
+    // initial velocity (up is negative)
+    const t = settings.jumpDuration;
+    const h = settings.jumpHeight;
+    const v0 = - (h + 0.5 * GRAVITY * t*t) / t;
+    player.verticalVel = v0;
     player.onFloor = false;
   }
 
-  // Gravity
-  player.verticalVel += GRAVITY * delta;
-  player.eyeOffset += player.verticalVel * delta;
+  // Gravity update (units ft/s)
+  player.verticalVel += GRAVITY * delta;         // gravity pulls down (positive)
+  player.eyeOffset += player.verticalVel * delta; // eyeOffset positive = below standing position
 
-  if(player.eyeOffset >= 0){
+  // Floor collision: eyeOffset >= 0 means back on floor
+  if (player.eyeOffset >= 0) {
     player.eyeOffset = 0;
     player.verticalVel = 0;
     player.onFloor = true;
   }
 
-  // Crouch
-  if(keys['control']) {
-    player.eyeOffset -= settings.crouchSpeed * delta;
-    if(player.eyeOffset < -2) player.eyeOffset = -2;
-  } else if(player.eyeOffset < 0){
-    player.eyeOffset += settings.crouchSpeed * delta;
-    if(player.eyeOffset > 0) player.eyeOffset = 0;
+  // Crouch (Control) — move eye downward toward -crouchDepth
+  if (keys['control']) {
+    player.eyeOffset = Math.max(-settings.crouchDepth, player.eyeOffset - settings.crouchSpeed * delta);
+  } else {
+    // stand back up
+    player.eyeOffset = Math.min(0, player.eyeOffset + settings.crouchSpeed * delta);
   }
 }
 
-// Raycasting
-function castRay(x, y, angle) {
-  let rayX = x;
-  let rayY = y;
-  const step = 0.02;
-  const maxDist = 20;
-  let traveled = 0;
+// --- Rendering ---
+// We'll render the world first (walls/ceiling/floor per-column).
+// For the floor: draw per column from the bottom of the wall slice downward so floor never overwrites wall pixels.
 
-  while(traveled < maxDist) {
-    rayX += Math.cos(angle) * step;
-    rayY += Math.sin(angle) * step;
-    traveled += step;
-
-    const mapX = Math.floor(rayX);
-    const mapY = Math.floor(rayY);
-    if(map[mapY] && map[mapY][mapX] === 1) return Math.hypot(rayX - x, rayY - y);
-  }
-  return maxDist;
-}
-
-// Render world
 function renderWorld() {
-  const horizon = canvas.height / 2;
-  ctx.clearRect(0,0,canvas.width,canvas.height);
+  const w = canvas.width, h = canvas.height;
+  const horizon = Math.floor(h/2 + Math.tan(player.pitch) * h/2 - player.eyeOffset * PIXELS_PER_FT);
+  // clear full screen
+  ctx.fillStyle = '#000';
+  ctx.fillRect(0,0,w,h);
 
-  // Ceiling
-  ctx.fillStyle = '#888';
-  ctx.fillRect(0,0,canvas.width,horizon);
+  // Ceiling: solid color
+  ctx.fillStyle = '#777';
+  ctx.fillRect(0, 0, w, Math.max(0, Math.min(horizon, h)));
 
+  // Raycasting per column
   const fov = Math.PI/3;
-  const numRays = canvas.width;
-  const MIN_DIST = 0.1;
-
-  // Walls
-  for(let i=0;i<numRays;i++){
-    const rayAngle = player.angle - fov/2 + (i/numRays)*fov;
+  const numRays = w; // one ray per screen column
+  const MIN_DIST = 0.15;
+  for (let col = 0; col < numRays; col++) {
+    const rayAngle = player.angle - fov/2 + (col / numRays) * fov;
     const dist = castRay(player.x, player.y, rayAngle);
-    const corrected = Math.max(dist*Math.cos(rayAngle-player.angle), MIN_DIST);
-    const wallHeight = Math.min(canvas.height, canvas.height / corrected * 0.8);
-    const pitchOffset = Math.tan(player.pitch)*canvas.height/2 - player.eyeOffset*PIXELS_PER_FT;
-    const shade = Math.min(255, 200 / corrected * 2);
-    ctx.fillStyle = `rgb(${shade},${shade},${shade})`;
-    const yStart = Math.max(0, horizon - wallHeight/2 + pitchOffset);
-    const yEnd = Math.min(canvas.height, horizon + wallHeight/2 + pitchOffset);
-    ctx.fillRect(i, yStart, 1, yEnd - yStart);
-  }
+    const corrected = Math.max(dist * Math.cos(rayAngle - player.angle), MIN_DIST);
+    const wallHeightPx = Math.min(h, (h / corrected) * 0.8);
+    const pitchOffsetPx = Math.tan(player.pitch) * h/2 - player.eyeOffset * PIXELS_PER_FT;
+    const half = wallHeightPx / 2;
 
-  // Floor
-  const floorStart = horizon;
-  const floorEnd = canvas.height;
-  for(let y=floorStart;y<floorEnd;y++){
-    const perspective = (y-horizon)/(floorEnd-horizon);
-    const dist = 1/(perspective + 0.001);
-    const shade = Math.min(255, 30 + 180 / dist);
+    // compute wall vertical screen span
+    const yTop = Math.max(0, Math.floor(horizon - half + pitchOffsetPx));
+    const yBottom = Math.min(h, Math.floor(horizon + half + pitchOffsetPx));
+
+    // wall shading (distance-based)
+    const shade = Math.max(20, Math.min(255, Math.floor(200 / corrected)));
     ctx.fillStyle = `rgb(${shade},${shade},${shade})`;
-    ctx.fillRect(0, y, canvas.width, 1);
+    const wallH = Math.max(0, yBottom - yTop);
+    if (wallH > 0) ctx.fillRect(col, yTop, 1, wallH);
+
+    // --- FLOOR: draw below the wall bottom for this column only ---
+    // choose a solid-ish base color and apply subtle distance-based brightness per column
+    // compute a representative distance for floor shading — use distFloor = Math.max(1, corrected)
+    const distFloor = Math.max(0.5, corrected);
+    // brightness (closer floor = lighter). tweak constants to taste.
+    const floorBase = 40; // darker base
+    const floorBrightness = Math.min(255, Math.floor(floorBase + 160 / distFloor));
+    ctx.fillStyle = `rgb(${floorBrightness},${floorBrightness},${floorBrightness})`;
+    // draw a single rectangle from yBottom to bottom of screen
+    if (yBottom < h) {
+      ctx.fillRect(col, yBottom, 1, h - yBottom);
+    }
+    // (ceiling is already drawn above)
   }
 }
 
-// HUD & overlays
+// --- HUD & overlays (screen-space) ---
 function renderHUD() {
-  const scale = 20;
+  const scale = 18;
   const margin = 10;
-  const mapWidth = map[0].length*scale;
-  const mapHeight = map.length*scale;
-  const offsetX = canvas.width - mapWidth - margin;
-  const offsetY = canvas.height - mapHeight - margin;
+  const mapWpx = MAP_W * scale;
+  const mapHpx = MAP_H * scale;
+  const offsetX = canvas.width - mapWpx - margin;
+  const offsetY = canvas.height - mapHpx - margin;
 
-  for(let y=0;y<map.length;y++){
-    for(let x=0;x<map[y].length;x++){
-      ctx.fillStyle = map[y][x]===1?'black':'lightgray';
-      ctx.fillRect(offsetX + x*scale, offsetY + y*scale, scale, scale);
+  // minimap background
+  ctx.fillStyle = 'rgba(0,0,0,0.5)';
+  ctx.fillRect(offsetX - 4, offsetY - 4, mapWpx + 8, mapHpx + 8);
+
+  for (let y = 0; y < MAP_H; y++) {
+    for (let x = 0; x < MAP_W; x++) {
+      ctx.fillStyle = map[y][x] === 1 ? '#111' : '#ddd';
+      ctx.fillRect(offsetX + x * scale, offsetY + y * scale, scale - 1, scale - 1);
     }
   }
-
-  const px = offsetX + player.x*scale;
-  const py = offsetY + player.y*scale;
-  ctx.fillStyle='red';
+  // player dot
+  const px = offsetX + player.x * scale;
+  const py = offsetY + player.y * scale;
+  ctx.fillStyle = 'red';
   ctx.beginPath();
-  ctx.arc(px,py,scale/4,0,Math.PI*2);
+  ctx.arc(px, py, Math.max(2, scale/4), 0, Math.PI*2);
   ctx.fill();
-  ctx.strokeStyle='red';
+  // direction line
+  ctx.strokeStyle = 'red';
   ctx.beginPath();
-  ctx.moveTo(px,py);
-  ctx.lineTo(px + Math.cos(player.angle)*scale, py + Math.sin(player.angle)*scale);
+  ctx.moveTo(px, py);
+  ctx.lineTo(px + Math.cos(player.angle) * scale, py + Math.sin(player.angle) * scale);
   ctx.stroke();
+
+  // bottom-right HUD box (eye level)
+  ctx.fillStyle = 'rgba(0,0,0,0.5)';
+  ctx.fillRect(canvas.width - 220, canvas.height - 80, 210, 70);
+  ctx.fillStyle = 'cyan';
+  ctx.font = '14px monospace';
+  const eyeLevelFt = (PLAYER_HEIGHT_FT + player.eyeOffset).toFixed(2);
+  ctx.fillText(`Eye level: ${eyeLevelFt} ft`, canvas.width - 210, canvas.height - 50);
+  ctx.fillStyle = 'white';
+  ctx.fillText(`Position: ${player.x.toFixed(2)}, ${player.y.toFixed(2)}`, canvas.width - 210, canvas.height - 32);
+  ctx.fillText(`Angle: ${player.angle.toFixed(2)} rad`, canvas.width - 210, canvas.height - 16);
 }
 
-function renderOverlay(){
-  const margin=10;
-  const lineHeight=18;
-  const overlayX = canvas.width - 260 - margin;
-  const overlayY = margin + 10;
-  ctx.fillStyle='rgba(0,0,0,0.5)';
-  ctx.fillRect(overlayX, margin, 260, 170);
-  ctx.fillStyle='white';
-  ctx.font='14px monospace';
-  ctx.fillText('FEATURES (Toggle Key):', overlayX +10, overlayY);
-  ctx.fillStyle = devMode?'lime':'red';
-  ctx.fillText('Development Mode (`): ' + (devMode?'ON':'OFF'), overlayX+10, overlayY + lineHeight);
-  ctx.fillStyle = (!devMode && document.pointerLockElement===canvas)?'lime':'red';
-  ctx.fillText('Mouse Look (M): ' + ((!devMode && document.pointerLockElement===canvas)?'ON':'OFF'), overlayX+10, overlayY+lineHeight*2);
-  ctx.fillStyle = keys[' ']?'lime':'red';
-  ctx.fillText('Jump (SPACE)', overlayX+10, overlayY+lineHeight*3);
-  ctx.fillStyle = keys['control']?'lime':'red';
-  ctx.fillText('Crouch (CTRL)', overlayX+10, overlayY+lineHeight*4);
-  ctx.fillStyle = showLayerDiagram?'lime':'red';
-  ctx.fillText('Layer Diagram (L): ' + (showLayerDiagram?'ON':'OFF'), overlayX+10, overlayY+lineHeight*5);
-  const eyeLevelFt = PLAYER_HEIGHT_FT - player.eyeOffset;
-  ctx.fillStyle='cyan';
-  ctx.fillText(`Eye Level: ${eyeLevelFt.toFixed(2)} ft`, overlayX+10, overlayY+lineHeight*6);
-  ctx.fillText(`Floor-Ceiling: ${WALL_HEIGHT_FT} ft`, overlayX+10, overlayY+lineHeight*7);
+function renderFeaturesOverlay() {
+  const margin = 10;
+  const overlayW = 300;
+  const overlayH = 180;
+  const x = canvas.width - overlayW - margin;
+  const y = margin;
+
+  ctx.fillStyle = 'rgba(0,0,0,0.55)';
+  ctx.fillRect(x, y, overlayW, overlayH);
+  ctx.fillStyle = 'white';
+  ctx.font = '14px monospace';
+  const line = (i) => y + 20 + i * 18;
+  ctx.fillText('FEATURES (Toggle key):', x + 10, line(0));
+  ctx.fillStyle = devMode ? 'lime' : 'red';
+  ctx.fillText('Dev Mode (`): ' + (devMode ? 'ON' : 'OFF'), x + 10, line(1));
+  ctx.fillStyle = (!devMode && document.pointerLockElement === canvas) ? 'lime' : 'red';
+  ctx.fillText('Mouse Look (M): ' + ((!devMode && document.pointerLockElement === canvas) ? 'ON' : 'OFF'), x + 10, line(2));
+  ctx.fillStyle = keys[' '] ? 'lime' : 'red';
+  ctx.fillText('Jump (Space)', x + 10, line(3));
+  ctx.fillStyle = keys['control'] ? 'lime' : 'red';
+  ctx.fillText('Crouch (Ctrl)', x + 10, line(4));
+  ctx.fillStyle = showLayerDiagram ? 'lime' : 'red';
+  ctx.fillText('Layer Diagram (L): ' + (showLayerDiagram ? 'ON' : 'OFF'), x + 10, line(5));
+  ctx.fillStyle = 'cyan';
+  ctx.fillText(`Eye Level: ${(PLAYER_HEIGHT_FT + player.eyeOffset).toFixed(2)} ft`, x + 10, line(6));
+  ctx.fillStyle = 'white';
+  ctx.fillText(`Floor-Ceiling: ${CEILING_HEIGHT_FT} ft`, x + 10, line(7));
 }
 
-function renderSettingsOverlay(){
-  if(!devMode) return;
-  const margin=10;
-  const lineHeight=18;
-  const overlayX=margin;
-  const overlayY=margin+10;
-  ctx.fillStyle='rgba(0,0,0,0.7)';
-  ctx.fillRect(overlayX, margin, 250, 140);
-  ctx.fillStyle='white';
-  ctx.font='14px monospace';
-  ctx.fillText('DEV SETTINGS:', overlayX+10, overlayY);
-  ctx.fillStyle='yellow';
-  ctx.fillText(`Jump Height (ft): ${settings.jumpHeight.toFixed(2)} (1/2)`, overlayX+10, overlayY+lineHeight);
-  ctx.fillText(`Jump Duration (sec): ${settings.jumpDuration.toFixed(2)} (3/4)`, overlayX+10, overlayY+lineHeight*2);
-  ctx.fillText(`Crouch Speed (ft/sec): ${settings.crouchSpeed.toFixed(2)} (5/6)`, overlayX+10, overlayY+lineHeight*3);
-  ctx.fillText(`Mouse Sensitivity: ${settings.mouseSensitivity.toFixed(3)} (7/8)`, overlayX+10, overlayY+lineHeight*4);
-  ctx.fillStyle='white';
-  ctx.fillText('Use number keys 1-8 to adjust', overlayX+10, overlayY+lineHeight*5);
+function renderSettingsOverlay() {
+  if (!devMode) return;
+  const x = 10;
+  const y = 10;
+  ctx.fillStyle = 'rgba(0,0,0,0.75)';
+  ctx.fillRect(x, y, 280, 140);
+  ctx.fillStyle = 'white';
+  ctx.font = '14px monospace';
+  ctx.fillText('DEV SETTINGS:', x + 10, y + 20);
+  ctx.fillStyle = 'yellow';
+  ctx.fillText(`Jump Height (ft): ${settings.jumpHeight.toFixed(2)} (1/2)`, x + 10, y + 40);
+  ctx.fillText(`Jump Duration (s): ${settings.jumpDuration.toFixed(2)} (3/4)`, x + 10, y + 60);
+  ctx.fillText(`Crouch Depth (ft): ${settings.crouchDepth ? settings.crouchDepth.toFixed(2) : 1.5} (5/6)`, x + 10, y + 80);
+  ctx.fillText(`Mouse Sensitivity: ${settings.mouseSensitivity.toFixed(4)} (7/8)`, x + 10, y + 100);
+  ctx.fillStyle = 'white';
+  ctx.fillText('Use 1-8 to tweak', x + 10, y + 120);
 }
 
-// Layer diagram with labels
+// --- Layer diagram (toggleable) ---
 function renderLayerDiagram() {
-  if(!showLayerDiagram) return;
-
-  // 3D World
-  ctx.fillStyle='rgba(0,0,255,0.2)';
+  if (!showLayerDiagram) return;
+  // translucent colored boxes drawn on top
+  ctx.fillStyle = 'rgba(0,0,255,0.18)'; // 3D world
   ctx.fillRect(0,0,canvas.width,canvas.height);
-  ctx.fillStyle='white';
-  ctx.font='16px monospace';
-  ctx.fillText('3D World', 20, 50);
 
-  // HUD
-  ctx.fillStyle='rgba(0,255,0,0.2)';
-  ctx.fillRect(canvas.width-200,canvas.height-200,200,200);
-  ctx.fillStyle='black';
-  ctx.fillText('HUD', canvas.width-190, canvas.height-180);
+  const scale = 18;
+  const mapWpx = MAP_W * scale;
+  const mapHpx = MAP_H * scale;
+  const offX = canvas.width - mapWpx - 10;
+  const offY = canvas.height - mapHpx - 10;
 
-  // Feature Overlay
-  ctx.fillStyle='rgba(255,255,0,0.2)';
-  ctx.fillRect(canvas.width-260,10,260,140);
-  ctx.fillStyle='black';
-  ctx.fillText('Feature Overlay', canvas.width-250, 30);
+  ctx.fillStyle = 'rgba(0,255,0,0.25)'; // HUD
+  ctx.fillRect(offX, offY, mapWpx, mapHpx);
+  ctx.fillStyle = 'black';
+  ctx.font = '14px monospace';
+  ctx.fillText('HUD', offX + 6, offY + 18);
 
-  // Settings Overlay
-  ctx.fillStyle='rgba(255,165,0,0.2)';
-  ctx.fillRect(10,10,250,140);
-  ctx.fillStyle='black';
+  ctx.fillStyle = 'rgba(255,255,0,0.22)'; // features
+  ctx.fillRect(canvas.width - 310, 10, 300, 180);
+  ctx.fillStyle = 'black';
+  ctx.fillText('Feature Overlay', canvas.width - 300, 30);
+
+  ctx.fillStyle = 'rgba(255,165,0,0.22)'; // settings
+  ctx.fillRect(10, 10, 280, 140);
+  ctx.fillStyle = 'black';
   ctx.fillText('Settings Overlay', 20, 30);
 
-  // Active indicator
-  ctx.fillStyle='white';
+  // active label
+  ctx.fillStyle = 'white';
+  ctx.font = '16px monospace';
   ctx.fillText('Layer Diagram ACTIVE (toggle L)', 20, 20);
 }
 
-// Dev map editing
-canvas.addEventListener('click', e=>{
-  if(!devMode) return;
-  const scale=20;
-  const margin=10;
-  const mapWidth=map[0].length*scale;
-  const mapHeight=map.length*scale;
-  const offsetX=canvas.width-mapWidth-margin;
-  const offsetY=canvas.height-mapHeight-margin;
-  const mx=e.clientX;
-  const my=e.clientY;
-  if(mx>=offsetX && mx<=offsetX+mapWidth && my>=offsetY && my<=offsetY+mapHeight){
-    const gridX = Math.floor((mx-offsetX)/scale);
-    const gridY = Math.floor((my-offsetY)/scale);
-    map[gridY][gridX] = map[gridY][gridX]===1?0:1;
-  }
-});
+// --- Main loop ---
+let last = performance.now();
+function loop(now) {
+  const delta = Math.min(0.05, (now - last) / 1000); // clamp dt to avoid big jumps
+  last = now;
 
-// Game loop
-let lastTime = performance.now();
-function gameLoop(now){
-  const delta=(now-lastTime)/1000;
-  lastTime=now;
   handleInput(delta);
+
+  // Render order: world -> HUD/overlays (screen-space) -> layer diagram (top)
   renderWorld();
   renderHUD();
-  renderOverlay();
+  renderFeaturesOverlay();
   renderSettingsOverlay();
   renderLayerDiagram();
-  requestAnimationFrame(gameLoop);
-}
 
-gameLoop(lastTime);
+  requestAnimationFrame(loop);
+}
+requestAnimationFrame(loop);
+
 </script>
 </body>
 </html>
