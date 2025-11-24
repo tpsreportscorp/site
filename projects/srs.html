@@ -160,7 +160,17 @@ async function openDeck(deck) {
 }
 
 // ---------------- Event Listeners ----------------
-document.getElementById('create-deck').addEventListener('click', renderDecks);
+document.getElementById('create-deck').addEventListener('click', async () => {
+    const name = deckNameInput.value.trim();
+    if (!name) return;
+    currentDeck = name;
+    deckNameInput.value = '';
+    document.getElementById('deck-manager').style.display = "none";
+    document.getElementById('card-manager').style.display = "block";
+    currentDeckName.textContent = name;
+    renderCards();
+    renderDecks();
+});
 
 document.getElementById('add-card').addEventListener('click', async () => {
     const front = cardFrontInput.value.trim();
@@ -208,7 +218,6 @@ function showCard() {
 }
 
 flashcard.addEventListener('click', () => flashcard.classList.toggle("flipped"));
-
 document.getElementById('flip-card').addEventListener('click', () => flashcard.classList.toggle("flipped"));
 
 // ---------------- SM-2 Algorithm ----------------
