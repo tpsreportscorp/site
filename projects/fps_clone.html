@@ -11,12 +11,13 @@
     height: 100%;
     background: #000;
     display: flex;
-    justify-content: center;
-    align-items: center;
+    justify-content: center; /* horizontal center */
+    align-items: center;     /* vertical center */
   }
   canvas {
-    width: 640px;
-    height: 480px;
+    display: block;
+    width: 640px;   /* CSS width */
+    height: 480px;  /* CSS height */
     image-rendering: pixelated;
     cursor: crosshair;
   }
@@ -33,7 +34,7 @@
 </style>
 </head>
 <body>
-<canvas id="game"></canvas>
+<canvas id="game" width="640" height="480"></canvas>
 <div id="hint">Backtick (`) = Dev mode, M = pointer lock + mouse look, L = Layer diagram</div>
 
 <script>
