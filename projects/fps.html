@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Mini DOOM Room</title>
+<title>Mini DOOM Room with Floor & Ceiling</title>
 <style>
   body { margin: 0; overflow: hidden; background: black; }
   canvas { display: block; }
@@ -30,8 +30,9 @@ void main(void) {
 `;
 
 const fsSource = `
+uniform vec4 uColor;
 void main(void) {
-  gl_FragColor = vec4(0.8, 0.4, 0.2, 1.0); // wall color
+  gl_FragColor = uColor;
 }
 `;
 
@@ -63,7 +64,8 @@ const programInfo = {
   attribLocations: { vertexPosition: gl.getAttribLocation(shaderProgram, 'aVertexPosition') },
   uniformLocations: {
     projectionMatrix: gl.getUniformLocation(shaderProgram, 'uProjectionMatrix'),
-    modelViewMatrix: gl.getUniformLocation(shaderProgram, 'uModelViewMatrix')
+    modelViewMatrix: gl.getUniformLocation(shaderProgram, 'uModelViewMatrix'),
+    color: gl.getUniformLocation(shaderProgram, 'uColor')
   }
 };
 
@@ -112,7 +114,7 @@ const keys = {};
 document.addEventListener('keydown', e => keys[e.key.toLowerCase()] = true);
 document.addEventListener('keyup', e => keys[e.key.toLowerCase()] = false);
 
-// --- Draw room ---
+// --- Draw scene ---
 function drawScene() {
   gl.viewport(0,0,canvas.width,canvas.height);
   gl.clearColor(0.1,0.1,0.2,1.0);
@@ -130,23 +132,33 @@ function drawScene() {
   gl.useProgram(shaderProgram);
   gl.uniformMatrix4fv(programInfo.uniformLocations.projectionMatrix, false, projectionMatrix);
 
+  // Draw walls
   for (let z=0; z<map.length; z++) {
     for (let x=0; x<map[z].length; x++) {
       if (map[z][x] === 1) {
-        const modelViewMatrix = mat4.create();
-
-        // Place cube at its map position
-        mat4.translate(modelViewMatrix, modelViewMatrix, [x,0,z]);
-
-        // Move world opposite to camera
-        mat4.translate(modelViewMatrix, modelViewMatrix, [-camera.x, -camera.y, -camera.z]);
-        mat4.rotateY(modelViewMatrix, modelViewMatrix, -camera.rot);
-
-        gl.uniformMatrix4fv(programInfo.uniformLocations.modelViewMatrix, false, modelViewMatrix);
-        gl.drawElements(gl.TRIANGLES, indices.length, gl.UNSIGNED_SHORT, 0);
+        drawCube(x,0,z,[0.8,0.4,0.2,1]); // orange walls
       }
     }
   }
+
+  // Draw floor
+  drawCube(map[0].length/2,-0.5,map.length/2,[0.3,0.6,0.3,1], map[0].length, 0.1, map.length); // green floor
+
+  // Draw ceiling
+  drawCube(map[0].length/2,1.5,map.length/2,[0.5,0.5,0.5,1], map[0].length, 0.1, map.length); // gray ceiling
+}
+
+// --- Draw cube helper ---
+function drawCube(x, y, z, color, scaleX=1, scaleY=1, scaleZ=1) {
+  const modelViewMatrix = mat4.create();
+  mat4.translate(modelViewMatrix, modelViewMatrix, [x, y, z]);
+  mat4.scale(modelViewMatrix, modelViewMatrix, [scaleX, scaleY, scaleZ]);
+  mat4.translate(modelViewMatrix, modelViewMatrix, [-camera.x, -camera.y, -camera.z]);
+  mat4.rotateY(modelViewMatrix, modelViewMatrix, -camera.rot);
+
+  gl.uniformMatrix4fv(programInfo.uniformLocations.modelViewMatrix, false, modelViewMatrix);
+  gl.uniform4fv(programInfo.uniformLocations.color, color);
+  gl.drawElements(gl.TRIANGLES, indices.length, gl.UNSIGNED_SHORT, 0);
 }
 
 // --- Camera movement ---
