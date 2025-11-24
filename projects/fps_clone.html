@@ -1,313 +1,172 @@
 <!doctype html>
 <html lang="en">
 <head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>Minimal DOOM Clone — Floorcasting</title>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>WebGL DOOM Clone</title>
 <style>
-html, body {
-  margin: 0; padding: 0; height: 100%; background: #000;
-  display: flex; justify-content: center; align-items: center;
-}
-canvas {
-  width: 640px; height: 480px; image-rendering: pixelated; cursor: crosshair; display: block;
-}
-#hint {
-  position: fixed; left: 8px; bottom: 8px;
-  color: #ccc; font: 12px/1 monospace;
-  background: rgba(0,0,0,0.4); padding: 6px 8px; border-radius: 6px;
-}
+  html,body{margin:0;padding:0;height:100%;background:#000;display:flex;justify-content:center;align-items:center;}
+  canvas{width:640px;height:480px;cursor:crosshair;}
+  #hint{position:fixed;left:8px;bottom:8px;color:#ccc;font:12px/1 monospace;background:rgba(0,0,0,0.4);padding:6px 8px;border-radius:6px;}
 </style>
 </head>
 <body>
-<canvas id="game" width="640" height="480"></canvas>
-<div id="hint">Backtick (`) = Dev mode, M = pointer lock + mouse look, L = Layer diagram</div>
-
+<canvas id="game"></canvas>
+<div id="hint">`=Dev, M=Mouse Lock+Look, L=Layer Diagram</div>
 <script>
+// --- WebGL init ---
 const canvas = document.getElementById('game');
-const ctx = canvas.getContext('2d', { alpha: false });
+const gl = canvas.getContext('webgl');
+canvas.width = 640; canvas.height = 480;
 
-const PIXELS_PER_FT = 100;
-const PLAYER_HEIGHT_FT = 5.67;
-const CEILING_HEIGHT_FT = 8;
-const GRAVITY = 12;
-const MAX_RAY_DIST = 24;
+// --- Shader helpers ---
+function compileShader(src, type){
+  const s = gl.createShader(type);
+  gl.shaderSource(s, src);
+  gl.compileShader(s);
+  if(!gl.getShaderParameter(s, gl.COMPILE_STATUS)) throw gl.getShaderInfoLog(s);
+  return s;
+}
+function createProgram(vs, fs){
+  const program = gl.createProgram();
+  gl.attachShader(program, vs);
+  gl.attachShader(program, fs);
+  gl.linkProgram(program);
+  if(!gl.getProgramParameter(program, gl.LINK_STATUS)) throw gl.getProgramInfoLog(program);
+  return program;
+}
 
-// Map
-let map = [
-  [1,1,1,1,1,1,1,1,1,1],
-  [1,0,0,0,0,0,0,0,0,1],
-  [1,0,1,0,1,0,1,0,0,1],
-  [1,0,0,0,0,0,0,1,0,1],
-  [1,0,1,0,0,1,0,0,0,1],
-  [1,0,0,0,1,0,0,0,0,1],
-  [1,0,0,0,0,0,1,0,0,1],
-  [1,0,0,1,0,0,0,0,0,1],
-  [1,0,0,0,0,0,0,0,0,1],
-  [1,1,1,1,1,1,1,1,1,1]
-];
-let MAP_W = map[0].length, MAP_H = map.length;
-
-// Player
-const player = { x:3.5, y:4.5, angle:0, pitch:0, radius:0.18, eyeOffset:0, verticalVel:0, onFloor:true };
-
-// Controls
-const keys = {};
-let devMode = false, showLayerDiagram = false;
-const settings = { walkSpeed:4.0, jumpHeight:2.0, jumpDuration:0.5, crouchDepth:1.5, crouchSpeed:5.0, mouseSensitivity:0.003 };
-
-// Input
-window.addEventListener('keydown', e => {
-  keys[e.key.toLowerCase()] = true; keys[e.key] = true;
-  if(e.key==='`'){ devMode=!devMode; hintDiv.style.display = devMode?'none':'block'; }
-  if(e.key.toLowerCase()==='l') showLayerDiagram=!showLayerDiagram;
-  if(e.key.toLowerCase()==='m' && !devMode){
-    if(document.pointerLockElement===canvas) document.exitPointerLock();
-    else canvas.requestPointerLock();
+// --- Shaders ---
+const vsSrc = `
+attribute vec2 aPos;
+void main(){ gl_Position = vec4(aPos,0.0,1.0); }
+`;
+const fsSrc = `
+precision mediump float;
+uniform vec2 uRes;
+uniform float uTime;
+uniform vec3 uPlayerPos; // x,y,eyeOffset
+uniform float uAngle;
+uniform float uPitch;
+uniform vec2 uMapSize;
+uniform float uCeilingH;
+float mapValue(vec2 p){
+  if(p.x<0.0||p.y<0.0||p.x>=uMapSize.x||p.y>=uMapSize.y) return 1.0;
+  float[100] m = float[100](
+    1.,1.,1.,1.,1.,1.,1.,1.,1.,1.,
+    1.,0.,0.,0.,0.,0.,0.,0.,0.,1.,
+    1.,0.,1.,0.,1.,0.,1.,0.,0.,1.,
+    1.,0.,0.,0.,0.,0.,0.,1.,0.,1.,
+    1.,0.,1.,0.,0.,1.,0.,0.,0.,1.,
+    1.,0.,0.,0.,1.,0.,0.,0.,0.,1.,
+    1.,0.,0.,0.,0.,0.,1.,0.,0.,1.,
+    1.,0.,0.,1.,0.,0.,0.,0.,0.,1.,
+    1.,0.,0.,0.,0.,0.,0.,0.,0.,1.,
+    1.,1.,1.,1.,1.,1.,1.,1.,1.,1.
+  );
+  int xi=int(p.x); int yi=int(p.y);
+  return m[yi*10+xi];
+}
+void main(){
+  vec2 uv=(gl_FragCoord.xy/uRes.xy)*2.0-1.0;
+  uv.x*=uRes.x/uRes.y;
+  vec3 col=vec3(0.0);
+  // simple floorcasting
+  float horizon=0.0;
+  float eyeH=uPlayerPos.z;
+  float fov=1.0472;
+  float rayDirXLeft=cos(uAngle-fov/2.0);
+  float rayDirYLeft=sin(uAngle-fov/2.0);
+  float rayDirXRight=cos(uAngle+fov/2.0);
+  float rayDirYRight=sin(uAngle+fov/2.0);
+  float screenY=(gl_FragCoord.y/uRes.y);
+  if(screenY<0.5){ col=vec3(0.6); } // ceiling
+  else{
+    float rowDist=eyeH*0.5/(screenY-0.5);
+    vec2 floorPos=uPlayerPos.xy+vec2(rayDirXLeft,rayDirYLeft)*rowDist + uv.x*vec2(rayDirXRight-rayDirXLeft,rayDirYRight-rayDirYLeft)*rowDist;
+    float m=mapValue(floorPos);
+    float checker=mod(floorPos.x+floorPos.y,2.0);
+    col=m>0.5?vec3(0.2):vec3(0.3+0.2*checker);
+    float shade=1.0/(rowDist*0.5+1.0);
+    col*=shade;
   }
-  if(devMode){
-    switch(e.key){
-      case '1': settings.jumpHeight+=0.1; break;
-      case '2': settings.jumpHeight=Math.max(0.1,settings.jumpHeight-0.1); break;
-      case '3': settings.jumpDuration+=0.05; break;
-      case '4': settings.jumpDuration=Math.max(0.05,settings.jumpDuration-0.05); break;
-      case '5': settings.crouchSpeed+=0.5; break;
-      case '6': settings.crouchSpeed=Math.max(0.5,settings.crouchSpeed-0.5); break;
-      case '7': settings.mouseSensitivity+=0.0005; break;
-      case '8': settings.mouseSensitivity=Math.max(0.0005,settings.mouseSensitivity-0.0005); break;
-      case '9': MAP_W=Math.min(50,MAP_W+1); break;
-      case '0': MAP_W=Math.max(5,MAP_W-1); break;
-    }
-    // adjust map width
-    map = map.map(row=>{
-      while(row.length<MAP_W) row.push(0);
-      while(row.length>MAP_W) row.pop();
-      return row;
-    });
-    MAP_H = map.length;
-  }
-});
-window.addEventListener('keyup', e => { keys[e.key.toLowerCase()]=false; keys[e.key]=false; });
-document.addEventListener('mousemove', e=>{
-  if(document.pointerLockElement===canvas){
+  gl_FragColor=vec4(col,1.0);
+}
+`;
+const vs = compileShader(vsSrc, gl.VERTEX_SHADER);
+const fs = compileShader(fsSrc, gl.FRAGMENT_SHADER);
+const program = createProgram(vs, fs);
+gl.useProgram(program);
+
+// --- Quad ---
+const quad = gl.createBuffer();
+gl.bindBuffer(gl.ARRAY_BUFFER, quad);
+gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1,-1,1,-1,-1,1,1,1]), gl.STATIC_DRAW);
+const aPos = gl.getAttribLocation(program,'aPos');
+gl.enableVertexAttribArray(aPos);
+gl.vertexAttribPointer(aPos,2,gl.FLOAT,false,0,0);
+
+// --- Uniforms ---
+const uRes = gl.getUniformLocation(program,'uRes');
+const uTime = gl.getUniformLocation(program,'uTime');
+const uPlayerPos = gl.getUniformLocation(program,'uPlayerPos');
+const uAngle = gl.getUniformLocation(program,'uAngle');
+const uPitch = gl.getUniformLocation(program,'uPitch');
+const uMapSize = gl.getUniformLocation(program,'uMapSize');
+const uCeilingH = gl.getUniformLocation(program,'uCeilingH');
+
+gl.uniform2f(uRes,640,480);
+gl.uniform2f(uMapSize,10,10);
+gl.uniform1f(uCeilingH,8.0);
+
+// --- Player ---
+const player = {x:3.5,y:4.5,z:5.67,angle:0,pitch:0,radius:0.18,verticalVel:0,onFloor:true};
+const keys={}; const settings={walkSpeed:4,jumpHeight:2,jumpDuration:0.5,crouchDepth:1.5,crouchSpeed:5,mouseSensitivity:0.003};
+let devMode=false;
+
+// --- Input ---
+window.addEventListener('keydown',e=>{ keys[e.key.toLowerCase()]=true; if(e.key==='`') devMode=!devMode; });
+window.addEventListener('keyup',e=>{ keys[e.key.toLowerCase()]=false; });
+document.addEventListener('mousemove',e=>{
+  if(document.pointerLockElement===canvas){ 
     player.angle+=e.movementX*settings.mouseSensitivity;
     player.pitch-=e.movementY*settings.mouseSensitivity;
-    const limit=Math.PI/2-0.01;
-    player.pitch=Math.max(-limit,Math.min(limit,player.pitch));
+    player.pitch=Math.max(-1.57,Math.min(1.57,player.pitch));
   }
 });
+canvas.addEventListener('click',()=>{ if(!devMode) canvas.requestPointerLock(); });
 
-// Helpers
-function inMap(x,y){ return x>=0 && y>=0 && x<MAP_W && y<MAP_H; }
-function tileAt(x,y){ return inMap(Math.floor(x),Math.floor(y))?map[Math.floor(y)][Math.floor(x)]:1; }
-function castRay(px,py,angle){
-  let rx=px,ry=py; const step=0.02; let traveled=0;
-  while(traveled<MAX_RAY_DIST){
-    rx+=Math.cos(angle)*step; ry+=Math.sin(angle)*step; traveled+=step;
-    const tx=Math.floor(rx), ty=Math.floor(ry);
-    if(!inMap(tx,ty)) return MAX_RAY_DIST;
-    if(map[ty][tx]===1) return Math.hypot(rx-px,ry-py);
+// --- Physics ---
+const GRAVITY=12;
+function handleInput(dt){
+  let dx=0,dy=0,speed=settings.walkSpeed*dt;
+  if(keys['w']){ dx+=Math.cos(player.angle)*speed; dy+=Math.sin(player.angle)*speed; }
+  if(keys['s']){ dx-=Math.cos(player.angle)*speed; dy-=Math.sin(player.angle)*speed; }
+  if(keys['a']){ dx+=Math.sin(player.angle)*speed; dy-=Math.cos(player.angle)*speed; }
+  if(keys['d']){ dx-=Math.sin(player.angle)*speed; dy+=Math.cos(player.angle)*speed; }
+  player.x+=dx; player.y+=dy;
+  if((keys[' '] || keys['space']) && player.onFloor){
+    const t=settings.jumpDuration,h=settings.jumpHeight;
+    player.verticalVel=-(h+0.5*GRAVITY*t*t)/t;
+    player.onFloor=false;
   }
-  return MAX_RAY_DIST;
-}
-function isColliding(x,y){
-  const r=player.radius; const minX=Math.floor(x-r), maxX=Math.floor(x+r);
-  const minY=Math.floor(y-r), maxY=Math.floor(y+r);
-  for(let yy=minY;yy<=maxY;yy++) for(let xx=minX;xx<=maxX;xx++){
-    if(!inMap(xx,yy)) return true;
-    if(map[yy][xx]===1) return true;
-  }
-  return false;
+  player.verticalVel+=GRAVITY*dt;
+  player.z+=player.verticalVel*dt;
+  if(player.z>=5.67){ player.z=5.67; player.verticalVel=0; player.onFloor=true; }
+  if(keys['control']) player.z=Math.max(5.67-settings.crouchDepth,player.z-settings.crouchSpeed*dt);
+  else player.z=Math.min(5.67,player.z+settings.crouchSpeed*dt);
 }
 
-// Dev map editing
-canvas.addEventListener('click', e=>{
-  if(!devMode) return;
-  const scale=18, margin=10;
-  const mapWpx = MAP_W*scale, mapHpx=MAP_H*scale;
-  const offX=canvas.width-mapWpx-margin, offY=canvas.height-mapHpx-margin;
-  const mx=e.clientX, my=e.clientY;
-  if(mx>=offX && mx<offX+mapWpx && my>=offY && my<offY+mapHpx){
-    const gx=Math.floor((mx-offX)/scale), gy=Math.floor((my-offY)/scale);
-    if(inMap(gx,gy)&&!(Math.floor(player.x)===gx&&Math.floor(player.y)===gy)){
-      map[gy][gx]=map[gy][gx]===1?0:1;
-    }
-  }
-});
-
-// Input & physics
-function handleInput(delta){
-  const speed=settings.walkSpeed*delta;
-  let dx=0,dy=0;
-  if(keys['w']||keys['arrowup']){ dx+=Math.cos(player.angle)*speed; dy+=Math.sin(player.angle)*speed; }
-  if(keys['s']||keys['arrowdown']){ dx-=Math.cos(player.angle)*speed; dy-=Math.sin(player.angle)*speed; }
-  if(keys['a']||keys['arrowleft']){ dx+=Math.sin(player.angle)*speed; dy-=Math.cos(player.angle)*speed; }
-  if(keys['d']||keys['arrowright']){ dx-=Math.sin(player.angle)*speed; dy+=Math.cos(player.angle)*speed; }
-
-  const newX=player.x+dx,newY=player.y+dy;
-  if(!isColliding(newX,player.y)) player.x=newX;
-  if(!isColliding(player.x,newY)) player.y=newY;
-
-  // jump
-  if((keys[' ']||keys['space'])&&player.onFloor){
-    const t=settings.jumpDuration, h=settings.jumpHeight;
-    const v0=-(2*h/ t); // simplified vertical speed
-    player.verticalVel=v0; player.onFloor=false;
-  }
-  player.verticalVel+=GRAVITY*delta;
-  player.eyeOffset+=player.verticalVel*delta;
-  if(player.eyeOffset>=0){ player.eyeOffset=0; player.verticalVel=0; player.onFloor=true; }
-
-  // crouch
-  if(keys['control']) player.eyeOffset=Math.max(-settings.crouchDepth,player.eyeOffset-settings.crouchSpeed*delta);
-  else player.eyeOffset=Math.min(0,player.eyeOffset+settings.crouchSpeed*delta);
-}
-
-// Rendering
-function renderWorld(){
-  const w=canvas.width,h=canvas.height;
-  const horizon=Math.floor(h/2+Math.tan(player.pitch)*h/2-player.eyeOffset*PIXELS_PER_FT);
-  ctx.fillStyle='#000'; ctx.fillRect(0,0,w,h);
-
-  // ceiling
-  ctx.fillStyle='#777';
-  ctx.fillRect(0,0,w,Math.max(0,Math.min(horizon,h)));
-
-  // wall casting
-  const fov=Math.PI/3, halfH=h/2, projPlaneDist=halfH/Math.tan(fov/2), eyeHeight=PLAYER_HEIGHT_FT+player.eyeOffset;
-  for(let col=0;col<w;col++){
-    const rayAngle=player.angle-fov/2+(col/w)*fov;
-    const dist=castRay(player.x,player.y,rayAngle);
-    const corrected=Math.max(dist*Math.cos(rayAngle-player.angle),0.15);
-    const wallHeightPx=Math.min(h,(h/corrected)*0.8);
-    const pitchOffsetPx=Math.tan(player.pitch)*halfH-player.eyeOffset*PIXELS_PER_FT;
-    const half=wallHeightPx/2;
-    const yTop=Math.max(0,Math.floor(horizon-half+pitchOffsetPx));
-    const yBottom=Math.min(h,Math.floor(horizon+half+pitchOffsetPx));
-    const shade=Math.max(18,Math.min(255,Math.floor(200/corrected)));
-    ctx.fillStyle=`rgb(${shade},${shade},${shade})`;
-    if(yBottom>yTop) ctx.fillRect(col,yTop,1,Math.max(0,yBottom-yTop));
-  }
-
-  // floor-casting below walls
-  const dirX=Math.cos(player.angle), dirY=Math.sin(player.angle);
-  const leftAngle=player.angle-fov/2, rightAngle=player.angle+fov/2;
-  const rayDirLeft={x:Math.cos(leftAngle),y:Math.sin(leftAngle)};
-  const rayDirRight={x:Math.cos(rightAngle),y:Math.sin(rightAngle)};
-  for(let screenY=Math.max(0,horizon);screenY<h;screenY++){
-    const denom=screenY-horizon; if(denom<=0) continue;
-    const rowDistance=(eyeHeight*projPlaneDist)/denom;
-    const stepX=(rayDirRight.x-rayDirLeft.x)*(rowDistance/w);
-    const stepY=(rayDirRight.y-rayDirLeft.y)*(rowDistance/w);
-    let floorX=player.x+rayDirLeft.x*rowDistance;
-    let floorY=player.y+rayDirLeft.y*rowDistance;
-    for(let col=0;col<w;col++){
-      // compute wall bottom for this column
-      const rayAngle=player.angle-fov/2+(col/w)*fov;
-      const dist=castRay(player.x,player.y,rayAngle);
-      const corrected=Math.max(dist*Math.cos(rayAngle-player.angle),0.15);
-      const wallHeightPx=Math.min(h,(h/corrected)*0.8);
-      const pitchOffsetPx=Math.tan(player.pitch)*halfH-player.eyeOffset*PIXELS_PER_FT;
-      const half=wallHeightPx/2;
-      const yBottom=Math.min(h,Math.floor(horizon+half+pitchOffsetPx));
-      if(screenY>yBottom){
-        const mapX=Math.floor(floorX), mapY=Math.floor(floorY);
-        let base=!inMap(mapX,mapY)?30:(((mapX+mapY)&1)?70:50);
-        const brightness=Math.max(10,Math.min(255,Math.floor(base+160/Math.max(0.5,rowDistance))));
-        ctx.fillStyle=`rgb(${brightness},${brightness},${brightness})`;
-        ctx.fillRect(col,screenY,1,1);
-      }
-      floorX+=stepX; floorY+=stepY;
-    }
-  }
-}
-
-// HUD & overlays
-function renderHUD(){
-  const scale=18, margin=10;
-  const mapWpx = MAP_W*scale, mapHpx = MAP_H*scale;
-  const offX=canvas.width-mapWpx-margin, offY=canvas.height-mapHpx-margin;
-
-  ctx.fillStyle='rgba(0,0,0,0.5)';
-  ctx.fillRect(offX-4,offY-4,mapWpx+8,mapHpx+8);
-
-  for(let y=0;y<MAP_H;y++) for(let x=0;x<MAP_W;x++){
-    ctx.fillStyle=map[y][x]===1?'#111':'#ddd';
-    ctx.fillRect(offX+x*scale,offY+y*scale,scale-1,scale-1);
-  }
-
-  const px=offX+player.x*scale, py=offY+player.y*scale;
-  ctx.fillStyle='red'; ctx.beginPath(); ctx.arc(px,py,Math.max(2,scale/4),0,Math.PI*2); ctx.fill();
-  ctx.strokeStyle='red'; ctx.beginPath(); ctx.moveTo(px,py); ctx.lineTo(px+Math.cos(player.angle)*scale,py+Math.sin(player.angle)*scale); ctx.stroke();
-
-  ctx.fillStyle='rgba(0,0,0,0.5)';
-  ctx.fillRect(canvas.width-220,canvas.height-80,210,70);
-  ctx.fillStyle='cyan'; ctx.font='14px monospace';
-  const eyeLevelFt=(PLAYER_HEIGHT_FT+player.eyeOffset).toFixed(2);
-  ctx.fillText(`Eye level: ${eyeLevelFt} ft`, canvas.width-210,canvas.height-50);
-  ctx.fillStyle='white';
-  ctx.fillText(`Pos: ${player.x.toFixed(2)}, ${player.y.toFixed(2)}`, canvas.width-210,canvas.height-32);
-  ctx.fillText(`Angle: ${player.angle.toFixed(2)} rad`, canvas.width-210,canvas.height-16);
-}
-
-// features & settings overlays
-function renderFeaturesOverlay(){
-  const margin=10, overlayW=300, overlayH=180;
-  const x=canvas.width-overlayW-margin, y=margin;
-  ctx.fillStyle='rgba(0,0,0,0.55)'; ctx.fillRect(x,y,overlayW,overlayH);
-  ctx.fillStyle='white'; ctx.font='14px monospace';
-  const line=i=>y+20+i*18;
-  ctx.fillText('FEATURES (Toggle key):',x+10,line(0));
-  ctx.fillStyle=devMode?'lime':'red'; ctx.fillText('Dev Mode (`): '+(devMode?'ON':'OFF'),x+10,line(1));
-  ctx.fillStyle=(!devMode&&document.pointerLockElement===canvas)?'lime':'red';
-  ctx.fillText('Mouse Look (M): '+((!devMode&&document.pointerLockElement===canvas)?'ON':'OFF'),x+10,line(2));
-  ctx.fillStyle=keys[' ']?'lime':'red'; ctx.fillText('Jump (Space)',x+10,line(3));
-  ctx.fillStyle=keys['control']?'lime':'red'; ctx.fillText('Crouch (Ctrl)',x+10,line(4));
-  ctx.fillStyle=showLayerDiagram?'lime':'red'; ctx.fillText('Layer Diagram (L): '+(showLayerDiagram?'ON':'OFF'),x+10,line(5));
-  ctx.fillStyle='cyan'; ctx.fillText(`Eye Level: ${(PLAYER_HEIGHT_FT+player.eyeOffset).toFixed(2)} ft`,x+10,line(6));
-  ctx.fillStyle='white'; ctx.fillText(`Floor-Ceiling: ${CEILING_HEIGHT_FT} ft`,x+10,line(7));
-}
-function renderSettingsOverlay(){
-  if(!devMode) return;
-  const x=10,y=10;
-  ctx.fillStyle='rgba(0,0,0,0.75)'; ctx.fillRect(x,y,280,160);
-  ctx.fillStyle='white'; ctx.font='14px monospace';
-  ctx.fillText('DEV SETTINGS:',x+10,y+20);
-  ctx.fillStyle='yellow';
-  ctx.fillText(`Jump Height (ft): ${settings.jumpHeight.toFixed(2)} (1/2)`,x+10,y+40);
-  ctx.fillText(`Jump Duration (s): ${settings.jumpDuration.toFixed(2)} (3/4)`,x+10,y+60);
-  ctx.fillText(`Crouch Depth (ft): ${settings.crouchDepth.toFixed(2)} (5/6)`,x+10,y+80);
-  ctx.fillText(`Mouse Sensitivity: ${settings.mouseSensitivity.toFixed(4)} (7/8)`,x+10,y+100);
-  ctx.fillText(`Map Width: ${MAP_W} (9/0)`,x+10,y+120);
-  ctx.fillText('Use 1-0 to tweak',x+10,y+140);
-}
-
-// layer diagram
-function renderLayerDiagram(){
-  if(!showLayerDiagram) return;
-  ctx.fillStyle='rgba(0,0,255,0.18)'; ctx.fillRect(0,0,canvas.width,canvas.height);
-  const scale=18,mapWpx=MAP_W*scale,mapHpx=MAP_H*scale;
-  const offX=canvas.width-mapWpx-10,offY=canvas.height-mapHpx-10;
-  ctx.fillStyle='rgba(0,255,0,0.25)'; ctx.fillRect(offX,offY,mapWpx,mapHpx);
-  ctx.fillStyle='black'; ctx.font='14px monospace'; ctx.fillText('HUD',offX+6,offY+18);
-  ctx.fillStyle='rgba(255,255,0,0.22)'; ctx.fillRect(canvas.width-310,10,300,180);
-  ctx.fillStyle='black'; ctx.fillText('Feature Overlay',canvas.width-300,30);
-  ctx.fillStyle='rgba(255,165,0,0.22)'; ctx.fillRect(10,10,280,160);
-  ctx.fillStyle='black'; ctx.fillText('Settings Overlay',20,30);
-  ctx.fillStyle='white'; ctx.font='16px monospace';
-  ctx.fillText('Layer Diagram ACTIVE (toggle L)',20,20);
-}
-
-// main loop
+// --- Main loop ---
 let last=performance.now();
 function loop(now){
   const dt=Math.min(0.05,(now-last)/1000); last=now;
   handleInput(dt);
-  renderWorld();
-  renderHUD();
-  renderFeaturesOverlay();
-  renderSettingsOverlay();
-  renderLayerDiagram();
+  gl.uniform1f(uTime,now*0.001);
+  gl.uniform3f(uPlayerPos,player.x,player.y,player.z);
+  gl.uniform1f(uAngle,player.angle);
+  gl.uniform1f(uPitch,player.pitch);
+  gl.drawArrays(gl.TRIANGLE_STRIP,0,4);
   requestAnimationFrame(loop);
 }
 requestAnimationFrame(loop);
