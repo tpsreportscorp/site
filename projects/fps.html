@@ -30,6 +30,7 @@ void main(void) {
 `;
 
 const fsSource = `
+precision mediump float;       // <- fix for no precision specified error
 uniform vec4 uColor;
 void main(void) {
   gl_FragColor = uColor;
@@ -71,18 +72,12 @@ const programInfo = {
 
 // --- Cube data ---
 const positions = [
-  // Front
-  -0.5,-0.5, 0.5,  0.5,-0.5,0.5,  0.5,0.5,0.5,  -0.5,0.5,0.5,
-  // Back
-  -0.5,-0.5,-0.5,  -0.5,0.5,-0.5,  0.5,0.5,-0.5,  0.5,-0.5,-0.5,
-  // Top
-  -0.5,0.5,-0.5,  -0.5,0.5,0.5,  0.5,0.5,0.5,  0.5,0.5,-0.5,
-  // Bottom
-  -0.5,-0.5,-0.5,  0.5,-0.5,-0.5,  0.5,-0.5,0.5,  -0.5,-0.5,0.5,
-  // Right
-  0.5,-0.5,-0.5,  0.5,0.5,-0.5,  0.5,0.5,0.5,  0.5,-0.5,0.5,
-  // Left
-  -0.5,-0.5,-0.5,  -0.5,-0.5,0.5,  -0.5,0.5,0.5,  -0.5,0.5,-0.5
+  -0.5,-0.5, 0.5,  0.5,-0.5,0.5,  0.5,0.5,0.5,  -0.5,0.5,0.5,   // Front
+  -0.5,-0.5,-0.5,  -0.5,0.5,-0.5,  0.5,0.5,-0.5,  0.5,-0.5,-0.5, // Back
+  -0.5,0.5,-0.5,  -0.5,0.5,0.5,  0.5,0.5,0.5,  0.5,0.5,-0.5,       // Top
+  -0.5,-0.5,-0.5,  0.5,-0.5,-0.5,  0.5,-0.5,0.5,  -0.5,-0.5,0.5,   // Bottom
+  0.5,-0.5,-0.5,  0.5,0.5,-0.5,  0.5,0.5,0.5,  0.5,-0.5,0.5,       // Right
+  -0.5,-0.5,-0.5,  -0.5,-0.5,0.5,  -0.5,0.5,0.5,  -0.5,0.5,-0.5    // Left
 ];
 
 const indices = [
@@ -135,17 +130,15 @@ function drawScene() {
   // Draw walls
   for (let z=0; z<map.length; z++) {
     for (let x=0; x<map[z].length; x++) {
-      if (map[z][x] === 1) {
-        drawCube(x,0,z,[0.8,0.4,0.2,1]); // orange walls
-      }
+      if (map[z][x] === 1) drawCube(x,0,z,[0.8,0.4,0.2,1]); // orange walls
     }
   }
 
   // Draw floor
-  drawCube(map[0].length/2,-0.5,map.length/2,[0.3,0.6,0.3,1], map[0].length, 0.1, map.length); // green floor
+  drawCube(map[0].length/2,-0.5,map.length/2,[0.3,0.6,0.3,1], map[0].length, 0.1, map.length);
 
   // Draw ceiling
-  drawCube(map[0].length/2,1.5,map.length/2,[0.5,0.5,0.5,1], map[0].length, 0.1, map.length); // gray ceiling
+  drawCube(map[0].length/2,1.5,map.length/2,[0.5,0.5,0.5,1], map[0].length, 0.1, map.length);
 }
 
 // --- Draw cube helper ---
