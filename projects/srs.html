@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Mini ANKI SPA - SM-2</title>
+<style>
+  body { font-family: Arial, sans-serif; margin: 0; padding: 20px; background: #f0f0f0; }
+  h1,h2 { margin-bottom: 10px; }
+  input { margin: 5px; padding: 5px; }
+  button { margin: 5px; padding: 5px 10px; cursor: pointer; }
+  ul { list-style: none; padding: 0; }
+  li { padding: 5px; background: #fff; margin: 3px 0; cursor: pointer; border-radius: 4px; }
+  #card-manager, #study-mode { display: none; }
+  .card-container { perspective: 1000px; margin: 20px 0; }
+  .card {
+      width: 300px; height: 200px; line-height: 200px; text-align: center;
+      border: 1px solid #ccc; background: #fff; border-radius: 8px;
+      cursor: pointer; font-size: 1.5rem;
+      transition: transform 0.6s; transform-style: preserve-3d; margin: auto;
+      position: relative;
+  }
+  .card.flipped { transform: rotateY(180deg); }
+  .card-front, .card-back {
+      position: absolute; width: 100%; height: 100%;
+      backface-visibility: hidden; display: flex; align-items: center; justify-content: center;
+  }
+  .card-back { transform: rotateY(180deg); }
+</style>
+</head>
+<body>
+
+<h1>Mini ANKI SPA (SM-2)</h1>
+
+<div id="deck-manager">
+  <input type="text" id="deck-name" placeholder="New deck name">
+  <button id="create-deck">Create Deck</button>
+  <ul id="deck-list"></ul>
+</div>
+
+<div id="card-manager">
+  <h2 id="current-deck-name"></h2>
+  <input type="text" id="card-front" placeholder="Front">
+  <input type="text" id="card-back" placeholder="Back">
+  <button id="add-card">Add Card</button>
+  <button id="back-to-decks">Back to Decks</button>
+  <ul id="card-list"></ul>
+  <button id="study-deck">Study Deck</button>
+</div>
+
+<div id="study-mode">
+  <h2 id="study-deck-title"></h2>
+  <div class="card-container">
+      <div id="flashcard" class="card">
+          <div class="card-front"></div>
+          <div class="card-back"></div>
+      </div>
+  </div>
+  <div style="text-align:center;">
+      <button id="flip-card">Flip</button>
+      <button id="again">Again</button>
+      <button id="good">Good</button>
+      <button id="easy">Easy</button>
+      <button id="end-study">End Study</button>
+  </div>
+</div>
+
+<script>
+// ---------------- IndexedDB Setup ----------------
+const dbName = "ankiDB";
+const dbVersion = 1;
+let db;
+async function openDB() {
+    return new Promise((resolve, reject) => {
+        const request = indexedDB.open(dbName, dbVersion);
+        request.onupgradeneeded = (event) => {
+            db = event.target.result;
+            if (!db.objectStoreNames.contains("cards")) {
+                const store = db.createObjectStore("cards", { keyPath: "id", autoIncrement: true });
+                store.createIndex("deck", "deck", { unique: false });
+            }
+        };
+        request.onsuccess = (event) => { db = event.target.result; resolve(db); };
+        request.onerror = (event) => reject(event.target.error);
+    });
+}
+
+async function addCardToDB(deck, front, back) {
+    const tx = db.transaction("cards", "readwrite");
+    const store = tx.objectStore("cards");
+    const card = { deck, front, back, interval:0, repetitions:0, EF:2.5, nextReview: Date.now() };
+    store.add(card);
+    await tx.complete;
+}
+
+async function getCards(deck) {
+    return new Promise((resolve, reject) => {
+        const tx = db.transaction("cards", "readonly");
+        const store = tx.objectStore("cards");
+        const index = store.index("deck");
+        const request = index.getAll(deck);
+        request.onsuccess = () => resolve(request.result);
+        request.onerror = () => reject(request.error);
+    });
+}
+
+async function updateCard(card) {
+    const tx = db.transaction("cards", "readwrite");
+    const store = tx.objectStore("cards");
+    store.put(card);
+    await tx.complete;
+}
+
+// ---------------- Deck & Card Management ----------------
+let currentDeck = null;
+let studyCards = [];
+let currentCardIndex = 0;
+let showingFront = true;
+
+const deckList = document.getElementById('deck-list');
+const cardList = document.getElementById('card-list');
+const deckNameInput = document.getElementById('deck-name');
+const cardFrontInput = document.getElementById('card-front');
+const cardBackInput = document.getElementById('card-back');
+const currentDeckName = document.getElementById('current-deck-name');
+const studyDeckTitle = document.getElementById('study-deck-title');
+
+async function renderDecks() {
+    const tx = db.transaction("cards", "readonly");
+    const store = tx.objectStore("cards");
+    const request = store.getAll();
+    request.onsuccess = () => {
+        const allCards = request.result;
+        const decks = [...new Set(allCards.map(c => c.deck))];
+        deckList.innerHTML = '';
+        decks.forEach(deck => {
+            let li = document.createElement('li');
+            li.textContent = deck;
+            li.addEventListener('click', () => openDeck(deck));
+            deckList.appendChild(li);
+        });
+    };
+}
+
+async function renderCards() {
+    const cards = await getCards(currentDeck);
+    cardList.innerHTML = '';
+    cards.forEach(card => {
+        let li = document.createElement('li');
+        li.textContent = `Front: ${card.front} | Back: ${card.back}`;
+        cardList.appendChild(li);
+    });
+}
+
+async function openDeck(deck) {
+    currentDeck = deck;
+    currentDeckName.textContent = deck;
+    document.getElementById('deck-manager').style.display = "none";
+    document.getElementById('card-manager').style.display = "block";
+    renderCards();
+}
+
+// ---------------- Event Listeners ----------------
+document.getElementById('create-deck').addEventListener('click', renderDecks);
+
+document.getElementById('add-card').addEventListener('click', async () => {
+    const front = cardFrontInput.value.trim();
+    const back = cardBackInput.value.trim();
+    if (!front || !back) return;
+    await addCardToDB(currentDeck, front, back);
+    cardFrontInput.value = '';
+    cardBackInput.value = '';
+    renderCards();
+});
+
+document.getElementById('back-to-decks').addEventListener('click', () => {
+    currentDeck = null;
+    document.getElementById('card-manager').style.display = "none";
+    document.getElementById('deck-manager').style.display = "block";
+    renderDecks();
+});
+
+document.getElementById('study-deck').addEventListener('click', async () => {
+    studyCards = await getCards(currentDeck);
+    studyCards = studyCards.filter(c => Date.now() >= c.nextReview);
+    if (studyCards.length === 0) { alert("No cards due for review!"); return; }
+    currentCardIndex = 0;
+    showingFront = true;
+    document.getElementById('card-manager').style.display = "none";
+    document.getElementById('study-mode').style.display = "block";
+    studyDeckTitle.textContent = currentDeck;
+    showCard();
+});
+
+// ---------------- Study Mode ----------------
+const flashcard = document.getElementById('flashcard');
+function showCard() {
+    if (currentCardIndex >= studyCards.length) {
+        alert("All due cards reviewed!");
+        document.getElementById('study-mode').style.display = "none";
+        document.getElementById('card-manager').style.display = "block";
+        return;
+    }
+    const card = studyCards[currentCardIndex];
+    flashcard.querySelector(".card-front").textContent = card.front;
+    flashcard.querySelector(".card-back").textContent = card.back;
+    flashcard.classList.remove("flipped");
+    showingFront = true;
+}
+
+flashcard.addEventListener('click', () => flashcard.classList.toggle("flipped"));
+
+document.getElementById('flip-card').addEventListener('click', () => flashcard.classList.toggle("flipped"));
+
+// ---------------- SM-2 Algorithm ----------------
+function reviewCardSM2(card, quality) {
+    const now = Date.now();
+    if (quality < 3) {
+        card.repetitions = 0;
+        card.interval = 1;
+    } else {
+        card.repetitions += 1;
+        if (card.repetitions === 1) card.interval = 1;
+        else if (card.repetitions === 2) card.interval = 6;
+        else card.interval = Math.round(card.interval * card.EF);
+    }
+    card.EF = card.EF + (0.1 - (5 - quality) * (0.08 + (5 - quality) * 0.02));
+    if (card.EF < 1.3) card.EF = 1.3;
+    card.nextReview = now + card.interval * 24*60*60*1000;
+    updateCard(card);
+}
+
+function handleReviewSM2(q) {
+    const card = studyCards[currentCardIndex];
+    reviewCardSM2(card, q);
+    currentCardIndex++;
+    showCard();
+}
+
+document.getElementById('again').addEventListener('click', () => handleReviewSM2(2));
+document.getElementById('good').addEventListener('click', () => handleReviewSM2(4));
+document.getElementById('easy').addEventListener('click', () => handleReviewSM2(5));
+document.getElementById('end-study').addEventListener('click', () => {
+    document.getElementById('study-mode').style.display = "none";
+    document.getElementById('card-manager').style.display = "block";
+});
+
+// ---------------- Initialize ----------------
+openDB().then(renderDecks);
+</script>
+
+</body>
+</html>
