@@ -1,19 +1,14 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="UTF-8">
-<title>Mini ANKI SPA - Mobile Friendly</title>
 <style>
 /* Base styling */
-body { font-family: Arial, sans-serif; margin: 0; padding: 15px; background: #f0f0f0; }
-h1,h2 { margin-bottom: 10px; text-align:center; font-size:1.8em; }
-input { margin: 10px 0; padding: 12px; width: 100%; font-size:1.2em; box-sizing: border-box; border-radius:8px; border:1px solid #ccc; }
-button { margin: 5px 0; padding: 15px; font-size:1.2em; cursor:pointer; border-radius:8px; border:none; background:#4CAF50; color:#fff; }
+body { font-family: Arial, sans-serif; margin: 0; padding: 30px; background: #f0f0f0; font-size:48px; }
+h1,h2 { margin-bottom: 30px; text-align:center; font-size:72px; }
+input { margin: 30px 0; padding: 45px; width: 100%; font-size:54px; box-sizing: border-box; border-radius:24px; border:2px solid #ccc; }
+button { margin: 15px 0; padding: 150px 30px; font-size:54px; cursor:pointer; border-radius:24px; border:none; background:#4CAF50; color:#fff; }
 button:hover { background:#45a049; }
 ul { list-style: none; padding: 0; }
-li { padding: 12px; background: #fff; margin: 5px 0; border-radius: 8px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; font-size:1.1em; min-height: 50px; }
+li { padding: 36px; background: #fff; margin: 15px 0; border-radius: 24px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; font-size:54px; min-height:150px; }
 li span { cursor: pointer; flex-grow:1; min-width:65%; }
-.edit-btn, .delete-btn { margin-left:5px; font-size:1em; padding:8px 12px; border-radius:6px; border:none; }
+.edit-btn, .delete-btn { margin-left:15px; font-size:36px; padding:24px 36px; border-radius:18px; border:none; }
 .edit-btn { background:#2196F3; color:#fff; }
 .edit-btn:hover { background:#1976D2; }
 .delete-btn { background:#f44336; color:#fff; }
@@ -22,72 +17,22 @@ li span { cursor: pointer; flex-grow:1; min-width:65%; }
 #card-manager, #study-mode { display: none; }
 
 /* Card container styling */
-.card-container { perspective: 1000px; margin: 20px auto; width: 95%; max-width: 400px; }
-.card { width: 100%; height: 260px; line-height: 260px; text-align:center; border:1px solid #ccc; background:#fff; border-radius:16px; cursor:pointer; font-size:1.4em; transition: transform 0.6s; transform-style: preserve-3d; position: relative; padding:10px; box-sizing:border-box; }
+.card-container { perspective: 1000px; margin: 60px auto; width: 95%; max-width: 1200px; }
+.card { width: 100%; height: 750px; line-height: 750px; text-align:center; border:2px solid #ccc; background:#fff; border-radius:48px; cursor:pointer; font-size:72px; transition: transform 0.6s; transform-style: preserve-3d; position: relative; padding:30px; box-sizing:border-box; }
 .card.flipped { transform: rotateY(180deg); }
-.card-front, .card-back { position: absolute; width:100%; height:100%; backface-visibility: hidden; display:flex; align-items:center; justify-content:center; padding:10px; box-sizing:border-box; text-align:center; word-wrap: break-word; font-size:1.4em; }
+.card-front, .card-back { position: absolute; width:100%; height:100%; backface-visibility: hidden; display:flex; align-items:center; justify-content:center; padding:30px; box-sizing:border-box; text-align:center; word-wrap: break-word; font-size:72px; }
 .card-back { transform: rotateY(180deg); }
 
 /* Study mode buttons stack vertically on small screens */
-#study-mode div button { display:inline-block; min-width:80px; height:50px; margin:5px 2px; font-size:1.2em; }
+#study-mode div button { display:inline-block; min-width:240px; height:150px; margin:15px 6px; font-size:54px; }
 
 /* Responsive tweaks */
 @media (max-width: 500px) {
-    li { flex-direction: column; align-items: flex-start; min-height: 60px; }
-    li span { margin-bottom:8px; font-size:1.2em; }
-    button { width: 100%; font-size:1.3em; padding:15px; }
-    input { font-size:1.3em; padding:14px; }
-    .card { height:280px; line-height:280px; font-size:1.5em; }
-    .card-front, .card-back { font-size:1.5em; }
+    li { flex-direction: column; align-items: flex-start; min-height:180px; }
+    li span { margin-bottom:24px; font-size:54px; }
+    button { width: 100%; font-size:54px; padding:150px 30px; }
+    input { font-size:54px; padding:45px; }
+    .card { height:750px; line-height:750px; font-size:72px; }
+    .card-front, .card-back { font-size:72px; }
 }
 </style>
-</head>
-<body>
-
-<h1>Mini ANKI SPA (SM-2 Mobile)</h1>
-
-<div id="deck-manager">
-  <input type="text" id="deck-name" placeholder="New deck name">
-  <button id="create-deck">Create Deck</button>
-  <ul id="deck-list"></ul>
-  <div>
-    <button id="export-data">Export Data</button>
-    <input type="file" id="import-file">
-  </div>
-</div>
-
-<div id="card-manager">
-  <h2 id="current-deck-name"></h2>
-  <input type="text" id="card-front" placeholder="Front">
-  <input type="text" id="card-back" placeholder="Back">
-  <button id="add-card">Add Card</button>
-  <button id="back-to-decks">Back to Decks</button>
-  <ul id="card-list"></ul>
-  <button id="study-deck">Study Deck</button>
-</div>
-
-<div id="study-mode">
-  <h2 id="study-deck-title"></h2>
-  <div class="card-container">
-      <div id="flashcard" class="card">
-          <div class="card-front"></div>
-          <div class="card-back"></div>
-      </div>
-  </div>
-  <div style="text-align:center;">
-      <button id="flip-card">Flip</button>
-      <button id="again">Again</button>
-      <button id="good">Good</button>
-      <button id="easy">Easy</button>
-      <button id="end-study">End Study</button>
-  </div>
-</div>
-
-<script>
-// --- All previous JS code for IndexedDB, decks/cards, SM-2, import/export, editing/deleting ---
-// This code is identical to the last fully polished version
-// Only CSS and layout changes have been applied for mobile responsiveness
-
-</script>
-</body>
-</html>
