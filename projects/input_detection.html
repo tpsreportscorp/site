@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Keyboard Canvas Demo</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      padding: 20px;
+    }
+    #log {
+      margin-top: 20px;
+      padding: 10px;
+      border: 1px solid #ccc;
+      max-height: 200px;
+      overflow-y: auto;
+      white-space: pre-wrap;
+      background: #f9f9f9;
+    }
+    canvas {
+      border: 1px solid black;
+      margin-top: 20px;
+      display: block;
+      background: #f0f0f0;
+    }
+  </style>
+</head>
+<body>
+
+<h1>Keyboard Event Logger + Canvas</h1>
+<p>Press any key to see <code>event.key</code> and <code>event.code</code> logged and visualized on the canvas.</p>
+
+<div id="log"></div>
+<canvas id="keyboardCanvas" width="800" height="200"></canvas>
+
+<script type="module">
+  // --- Top-level keyboard keys JSON ---
+  const KEYBOARD_KEYS = {
+    "Control Keys": [
+      { key: "Control", code: "ControlLeft" },
+      { key: "Control", code: "ControlRight" },
+      { key: "Shift", code: "ShiftLeft" },
+      { key: "Shift", code: "ShiftRight" },
+      { key: "Alt", code: "AltLeft" },
+      { key: "Alt", code: "AltRight" },
+      { key: "Meta", code: "MetaLeft" },
+      { key: "Meta", code: "MetaRight" }
+    ],
+    "Navigation Keys": [
+      { key: "ArrowUp", code: "ArrowUp" },
+      { key: "ArrowDown", code: "ArrowDown" },
+      { key: "ArrowLeft", code: "ArrowLeft" },
+      { key: "ArrowRight", code: "ArrowRight" },
+      { key: "Home", code: "Home" },
+      { key: "End", code: "End" },
+      { key: "PageUp", code: "PageUp" },
+      { key: "PageDown", code: "PageDown" }
+    ],
+    "Editing Keys": [
+      { key: "Backspace", code: "Backspace" },
+      { key: "Delete", code: "Delete" },
+      { key: "Insert", code: "Insert" },
+      { key: "Enter", code: "Enter" },
+      { key: "Tab", code: "Tab" },
+      { key: "Escape", code: "Escape" }
+    ],
+    "Function Keys": [
+      { key: "F1", code: "F1" },
+      { key: "F2", code: "F2" },
+      { key: "F3", code: "F3" },
+      { key: "F4", code: "F4" },
+      { key: "F5", code: "F5" },
+      { key: "F6", code: "F6" },
+      { key: "F7", code: "F7" },
+      { key: "F8", code: "F8" },
+      { key: "F9", code: "F9" },
+      { key: "F10", code: "F10" },
+      { key: "F11", code: "F11" },
+      { key: "F12", code: "F12" }
+    ],
+    "Character Keys": [
+      { key: "a", code: "KeyA" },
+      { key: "b", code: "KeyB" },
+      { key: "c", code: "KeyC" },
+      { key: "d", code: "KeyD" },
+      { key: "e", code: "KeyE" },
+      { key: "f", code: "KeyF" },
+      { key: "g", code: "KeyG" },
+      { key: "h", code: "KeyH" },
+      { key: "i", code: "KeyI" },
+      { key: "j", code: "KeyJ" },
+      { key: "k", code: "KeyK" },
+      { key: "l", code: "KeyL" },
+      { key: "m", code: "KeyM" },
+      { key: "n", code: "KeyN" },
+      { key: "o", code: "KeyO" },
+      { key: "p", code: "KeyP" },
+      { key: "q", code: "KeyQ" },
+      { key: "r", code: "KeyR" },
+      { key: "s", code: "KeyS" },
+      { key: "t", code: "KeyT" },
+      { key: "u", code: "KeyU" },
+      { key: "v", code: "KeyV" },
+      { key: "w", code: "KeyW" },
+      { key: "x", code: "KeyX" },
+      { key: "y", code: "KeyY" },
+      { key: "z", code: "KeyZ" },
+      { key: "0", code: "Digit0" },
+      { key: "1", code: "Digit1" },
+      { key: "2", code: "Digit2" },
+      { key: "3", code: "Digit3" },
+      { key: "4", code: "Digit4" },
+      { key: "5", code: "Digit5" },
+      { key: "6", code: "Digit6" },
+      { key: "7", code: "Digit7" },
+      { key: "8", code: "Digit8" },
+      { key: "9", code: "Digit9" }
+    ],
+    "Punctuation Keys": [
+      { key: "`", code: "Backquote" },
+      { key: "-", code: "Minus" },
+      { key: "=", code: "Equal" },
+      { key: "[", code: "BracketLeft" },
+      { key: "]", code: "BracketRight" },
+      { key: "\\", code: "Backslash" },
+      { key: ";", code: "Semicolon" },
+      { key: "'", code: "Quote" },
+      { key: ",", code: "Comma" },
+      { key: ".", code: "Period" },
+      { key: "/", code: "Slash" }
+    ],
+    "System Keys": [
+      { key: "PrintScreen", code: "PrintScreen" },
+      { key: "ScrollLock", code: "ScrollLock" },
+      { key: "Pause", code: "Pause" }
+    ],
+    "Numpad Keys": [
+      { key: "NumLock", code: "NumLock" },
+      { key: "/", code: "NumpadDivide" },
+      { key: "*", code: "NumpadMultiply" },
+      { key: "-", code: "NumpadSubtract" },
+      { key: "+", code: "NumpadAdd" },
+      { key: "Enter", code: "NumpadEnter" },
+      { key: "0", code: "Numpad0" },
+      { key: "1", code: "Numpad1" },
+      { key: "2", code: "Numpad2" },
+      { key: "3", code: "Numpad3" },
+      { key: "4", code: "Numpad4" },
+      { key: "5", code: "Numpad5" },
+      { key: "6", code: "Numpad6" },
+      { key: "7", code: "Numpad7" },
+      { key: "8", code: "Numpad8" },
+      { key: "9", code: "Numpad9" },
+      { key: ".", code: "NumpadDecimal" }
+    ]
+  };
+
+  // --- Setup logging div ---
+  const logDiv = document.getElementById('log');
+
+  // --- Setup canvas ---
+  const canvas = document.getElementById('keyboardCanvas');
+  const ctx = canvas.getContext('2d');
+
+  ctx.font = "20px Arial";
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+  let keyX = 50; // starting x coordinate
+
+  // --- Key press handler ---
+  window.addEventListener('keydown', (event) => {
+    const { key, code } = event;
+    const timestamp = new Date().toLocaleTimeString();
+    const message = `[${timestamp}] Key pressed: key='${key}', code='${code}'\n`;
+
+    logDiv.textContent += message;
+    logDiv.scrollTop = logDiv.scrollHeight;
+
+    // --- Draw key on canvas ---
+    const category = Object.keys(KEYBOARD_KEYS).find(cat =>
+      KEYBOARD_KEYS[cat].some(k => k.code === code)
+    );
+
+    let color = "#666"; // default color
+    if (category) {
+      if (category.includes("Control")) color = "#f39c12";
+      else if (category.includes("Navigation")) color = "#3498db";
+      else if (category.includes("Editing")) color = "#e74c3c";
+      else if (category.includes("Function")) color = "#9b59b6";
+      else if (category.includes("Character")) color = "#2ecc71";
+      else if (category.includes("Punctuation")) color = "#1abc9c";
+      else if (category.includes("Numpad")) color = "#e67e22";
+      else if (category.includes("System")) color = "#7f8c8d";
+    }
+
+    ctx.fillStyle = color;
+    ctx.fillRect(keyX, 50, 60, 60);
+    ctx.fillStyle = "#fff";
+    ctx.fillText(key, keyX + 30, 80);
+
+    keyX += 70;
+    if (keyX > canvas.width - 70) keyX = 50;
+  });
+</script>
+
+</body>
+</html>
