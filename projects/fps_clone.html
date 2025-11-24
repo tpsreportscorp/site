@@ -1,0 +1,370 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Mini DOOM Clone - Layer Diagram Labeled</title>
+<style>
+  html, body {
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+    background: black;
+    height: 100%;
+  }
+  canvas {
+    display: block;
+    width: 100%;
+    height: 100%;
+    image-rendering: pixelated;
+    cursor: crosshair;
+  }
+</style>
+</head>
+<body>
+<canvas id="game"></canvas>
+<script>
+const canvas = document.getElementById('game');
+const ctx = canvas.getContext('2d');
+canvas.width = window.innerWidth;
+canvas.height = window.innerHeight;
+
+// Constants
+const UNIT_FT = 1;
+const PLAYER_HEIGHT_FT = 5.67;
+const WALL_HEIGHT_FT = 8;
+const PIXELS_PER_FT = 100;
+
+// Map
+const map = [
+  [1,1,1,1,1,1,1,1],
+  [1,0,0,0,0,0,0,1],
+  [1,0,1,0,1,0,0,1],
+  [1,0,0,0,0,1,0,1],
+  [1,0,1,0,0,0,0,1],
+  [1,0,0,0,1,0,0,1],
+  [1,0,0,0,0,0,0,1],
+  [1,1,1,1,1,1,1,1]
+];
+
+// Player
+const player = {
+  x: 3.5, y: 3.5, angle: 0, pitch: 0, radius: 0.15,
+  eyeOffset: 0, verticalVel: 0, onFloor: true
+};
+
+// Input
+const keys = {};
+let devMode = false;
+let showLayerDiagram = false;
+
+// Settings
+const settings = {
+  jumpHeight: 2,
+  jumpDuration: 0.58,
+  crouchSpeed: 3,
+  mouseSensitivity: 0.002
+};
+const GRAVITY = 12;
+
+// Keyboard
+window.addEventListener('keydown', e => {
+  keys[e.key.toLowerCase()] = true;
+  keys[e.key] = true;
+
+  if(e.key === '`') devMode = !devMode;
+  if(e.key.toLowerCase() === 'l') showLayerDiagram = !showLayerDiagram;
+
+  if(e.key.toLowerCase() === 'm' && !devMode){
+    if(document.pointerLockElement === canvas){
+      document.exitPointerLock();
+    } else {
+      canvas.requestPointerLock();
+    }
+  }
+
+  if(devMode){
+    switch(e.key){
+      case '1': settings.jumpHeight += 0.1; break;
+      case '2': settings.jumpHeight = Math.max(0.1, settings.jumpHeight - 0.1); break;
+      case '3': settings.jumpDuration += 0.05; break;
+      case '4': settings.jumpDuration = Math.max(0.05, settings.jumpDuration - 0.05); break;
+      case '5': settings.crouchSpeed += 0.5; break;
+      case '6': settings.crouchSpeed = Math.max(0.5, settings.crouchSpeed - 0.5); break;
+      case '7': settings.mouseSensitivity += 0.001; break;
+      case '8': settings.mouseSensitivity = Math.max(0.001, settings.mouseSensitivity - 0.001); break;
+    }
+  }
+});
+window.addEventListener('keyup', e => {
+  keys[e.key.toLowerCase()] = false;
+  keys[e.key] = false;
+});
+
+// Mouse
+document.addEventListener('mousemove', e => {
+  if(document.pointerLockElement === canvas){
+    player.angle += e.movementX * settings.mouseSensitivity;
+    player.pitch -= e.movementY * settings.mouseSensitivity;
+    player.pitch = Math.max(-Math.PI/2, Math.min(Math.PI/2, player.pitch));
+  }
+});
+
+// Collision
+function isColliding(x, y) {
+  const r = player.radius;
+  const minX = Math.floor(x - r);
+  const maxX = Math.floor(x + r);
+  const minY = Math.floor(y - r);
+  const maxY = Math.floor(y + r);
+  for(let yy = minY; yy <= maxY; yy++) {
+    for(let xx = minX; xx <= maxX; xx++) {
+      if(map[yy] && map[yy][xx] === 1) return true;
+    }
+  }
+  return false;
+}
+
+// Movement
+function handleInput(delta) {
+  const speed = 3 * delta;
+  let newX = player.x;
+  let newY = player.y;
+
+  if(keys['w'] || keys['arrowup']) { newX += Math.cos(player.angle) * speed; newY += Math.sin(player.angle) * speed; }
+  if(keys['s'] || keys['arrowdown']) { newX -= Math.cos(player.angle) * speed; newY -= Math.sin(player.angle) * speed; }
+  if(keys['a'] || keys['arrowleft']) { newX += Math.sin(player.angle) * speed; newY -= Math.cos(player.angle) * speed; }
+  if(keys['d'] || keys['arrowright']) { newX -= Math.sin(player.angle) * speed; newY += Math.cos(player.angle) * speed; }
+
+  if(!isColliding(newX, player.y)) player.x = newX;
+  if(!isColliding(player.x, newY)) player.y = newY;
+
+  // Jump
+  if(keys[' '] && player.onFloor){
+    player.verticalVel = -(settings.jumpHeight + 0.5 * GRAVITY * settings.jumpDuration ** 2) / settings.jumpDuration;
+    player.onFloor = false;
+  }
+
+  // Gravity
+  player.verticalVel += GRAVITY * delta;
+  player.eyeOffset += player.verticalVel * delta;
+
+  if(player.eyeOffset >= 0){
+    player.eyeOffset = 0;
+    player.verticalVel = 0;
+    player.onFloor = true;
+  }
+
+  // Crouch
+  if(keys['control']) {
+    player.eyeOffset -= settings.crouchSpeed * delta;
+    if(player.eyeOffset < -2) player.eyeOffset = -2;
+  } else if(player.eyeOffset < 0){
+    player.eyeOffset += settings.crouchSpeed * delta;
+    if(player.eyeOffset > 0) player.eyeOffset = 0;
+  }
+}
+
+// Raycasting
+function castRay(x, y, angle) {
+  let rayX = x;
+  let rayY = y;
+  const step = 0.02;
+  const maxDist = 20;
+  let traveled = 0;
+
+  while(traveled < maxDist) {
+    rayX += Math.cos(angle) * step;
+    rayY += Math.sin(angle) * step;
+    traveled += step;
+
+    const mapX = Math.floor(rayX);
+    const mapY = Math.floor(rayY);
+    if(map[mapY] && map[mapY][mapX] === 1) return Math.hypot(rayX - x, rayY - y);
+  }
+  return maxDist;
+}
+
+// Render world
+function renderWorld() {
+  const horizon = canvas.height / 2;
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+
+  // Ceiling
+  ctx.fillStyle = '#888';
+  ctx.fillRect(0,0,canvas.width,horizon);
+
+  const fov = Math.PI/3;
+  const numRays = canvas.width;
+  const MIN_DIST = 0.1;
+
+  // Walls
+  for(let i=0;i<numRays;i++){
+    const rayAngle = player.angle - fov/2 + (i/numRays)*fov;
+    const dist = castRay(player.x, player.y, rayAngle);
+    const corrected = Math.max(dist*Math.cos(rayAngle-player.angle), MIN_DIST);
+    const wallHeight = Math.min(canvas.height, canvas.height / corrected * 0.8);
+    const pitchOffset = Math.tan(player.pitch)*canvas.height/2 - player.eyeOffset*PIXELS_PER_FT;
+    const shade = Math.min(255, 200 / corrected * 2);
+    ctx.fillStyle = `rgb(${shade},${shade},${shade})`;
+    const yStart = Math.max(0, horizon - wallHeight/2 + pitchOffset);
+    const yEnd = Math.min(canvas.height, horizon + wallHeight/2 + pitchOffset);
+    ctx.fillRect(i, yStart, 1, yEnd - yStart);
+  }
+
+  // Floor
+  const floorStart = horizon;
+  const floorEnd = canvas.height;
+  for(let y=floorStart;y<floorEnd;y++){
+    const perspective = (y-horizon)/(floorEnd-horizon);
+    const dist = 1/(perspective + 0.001);
+    const shade = Math.min(255, 30 + 180 / dist);
+    ctx.fillStyle = `rgb(${shade},${shade},${shade})`;
+    ctx.fillRect(0, y, canvas.width, 1);
+  }
+}
+
+// HUD & overlays
+function renderHUD() {
+  const scale = 20;
+  const margin = 10;
+  const mapWidth = map[0].length*scale;
+  const mapHeight = map.length*scale;
+  const offsetX = canvas.width - mapWidth - margin;
+  const offsetY = canvas.height - mapHeight - margin;
+
+  for(let y=0;y<map.length;y++){
+    for(let x=0;x<map[y].length;x++){
+      ctx.fillStyle = map[y][x]===1?'black':'lightgray';
+      ctx.fillRect(offsetX + x*scale, offsetY + y*scale, scale, scale);
+    }
+  }
+
+  const px = offsetX + player.x*scale;
+  const py = offsetY + player.y*scale;
+  ctx.fillStyle='red';
+  ctx.beginPath();
+  ctx.arc(px,py,scale/4,0,Math.PI*2);
+  ctx.fill();
+  ctx.strokeStyle='red';
+  ctx.beginPath();
+  ctx.moveTo(px,py);
+  ctx.lineTo(px + Math.cos(player.angle)*scale, py + Math.sin(player.angle)*scale);
+  ctx.stroke();
+}
+
+function renderOverlay(){
+  const margin=10;
+  const lineHeight=18;
+  const overlayX = canvas.width - 260 - margin;
+  const overlayY = margin + 10;
+  ctx.fillStyle='rgba(0,0,0,0.5)';
+  ctx.fillRect(overlayX, margin, 260, 170);
+  ctx.fillStyle='white';
+  ctx.font='14px monospace';
+  ctx.fillText('FEATURES (Toggle Key):', overlayX +10, overlayY);
+  ctx.fillStyle = devMode?'lime':'red';
+  ctx.fillText('Development Mode (`): ' + (devMode?'ON':'OFF'), overlayX+10, overlayY + lineHeight);
+  ctx.fillStyle = (!devMode && document.pointerLockElement===canvas)?'lime':'red';
+  ctx.fillText('Mouse Look (M): ' + ((!devMode && document.pointerLockElement===canvas)?'ON':'OFF'), overlayX+10, overlayY+lineHeight*2);
+  ctx.fillStyle = keys[' ']?'lime':'red';
+  ctx.fillText('Jump (SPACE)', overlayX+10, overlayY+lineHeight*3);
+  ctx.fillStyle = keys['control']?'lime':'red';
+  ctx.fillText('Crouch (CTRL)', overlayX+10, overlayY+lineHeight*4);
+  ctx.fillStyle = showLayerDiagram?'lime':'red';
+  ctx.fillText('Layer Diagram (L): ' + (showLayerDiagram?'ON':'OFF'), overlayX+10, overlayY+lineHeight*5);
+  const eyeLevelFt = PLAYER_HEIGHT_FT - player.eyeOffset;
+  ctx.fillStyle='cyan';
+  ctx.fillText(`Eye Level: ${eyeLevelFt.toFixed(2)} ft`, overlayX+10, overlayY+lineHeight*6);
+  ctx.fillText(`Floor-Ceiling: ${WALL_HEIGHT_FT} ft`, overlayX+10, overlayY+lineHeight*7);
+}
+
+function renderSettingsOverlay(){
+  if(!devMode) return;
+  const margin=10;
+  const lineHeight=18;
+  const overlayX=margin;
+  const overlayY=margin+10;
+  ctx.fillStyle='rgba(0,0,0,0.7)';
+  ctx.fillRect(overlayX, margin, 250, 140);
+  ctx.fillStyle='white';
+  ctx.font='14px monospace';
+  ctx.fillText('DEV SETTINGS:', overlayX+10, overlayY);
+  ctx.fillStyle='yellow';
+  ctx.fillText(`Jump Height (ft): ${settings.jumpHeight.toFixed(2)} (1/2)`, overlayX+10, overlayY+lineHeight);
+  ctx.fillText(`Jump Duration (sec): ${settings.jumpDuration.toFixed(2)} (3/4)`, overlayX+10, overlayY+lineHeight*2);
+  ctx.fillText(`Crouch Speed (ft/sec): ${settings.crouchSpeed.toFixed(2)} (5/6)`, overlayX+10, overlayY+lineHeight*3);
+  ctx.fillText(`Mouse Sensitivity: ${settings.mouseSensitivity.toFixed(3)} (7/8)`, overlayX+10, overlayY+lineHeight*4);
+  ctx.fillStyle='white';
+  ctx.fillText('Use number keys 1-8 to adjust', overlayX+10, overlayY+lineHeight*5);
+}
+
+// Layer diagram with labels
+function renderLayerDiagram() {
+  if(!showLayerDiagram) return;
+
+  // 3D World
+  ctx.fillStyle='rgba(0,0,255,0.2)';
+  ctx.fillRect(0,0,canvas.width,canvas.height);
+  ctx.fillStyle='white';
+  ctx.font='16px monospace';
+  ctx.fillText('3D World', 20, 50);
+
+  // HUD
+  ctx.fillStyle='rgba(0,255,0,0.2)';
+  ctx.fillRect(canvas.width-200,canvas.height-200,200,200);
+  ctx.fillStyle='black';
+  ctx.fillText('HUD', canvas.width-190, canvas.height-180);
+
+  // Feature Overlay
+  ctx.fillStyle='rgba(255,255,0,0.2)';
+  ctx.fillRect(canvas.width-260,10,260,140);
+  ctx.fillStyle='black';
+  ctx.fillText('Feature Overlay', canvas.width-250, 30);
+
+  // Settings Overlay
+  ctx.fillStyle='rgba(255,165,0,0.2)';
+  ctx.fillRect(10,10,250,140);
+  ctx.fillStyle='black';
+  ctx.fillText('Settings Overlay', 20, 30);
+
+  // Active indicator
+  ctx.fillStyle='white';
+  ctx.fillText('Layer Diagram ACTIVE (toggle L)', 20, 20);
+}
+
+// Dev map editing
+canvas.addEventListener('click', e=>{
+  if(!devMode) return;
+  const scale=20;
+  const margin=10;
+  const mapWidth=map[0].length*scale;
+  const mapHeight=map.length*scale;
+  const offsetX=canvas.width-mapWidth-margin;
+  const offsetY=canvas.height-mapHeight-margin;
+  const mx=e.clientX;
+  const my=e.clientY;
+  if(mx>=offsetX && mx<=offsetX+mapWidth && my>=offsetY && my<=offsetY+mapHeight){
+    const gridX = Math.floor((mx-offsetX)/scale);
+    const gridY = Math.floor((my-offsetY)/scale);
+    map[gridY][gridX] = map[gridY][gridX]===1?0:1;
+  }
+});
+
+// Game loop
+let lastTime = performance.now();
+function gameLoop(now){
+  const delta=(now-lastTime)/1000;
+  lastTime=now;
+  handleInput(delta);
+  renderWorld();
+  renderHUD();
+  renderOverlay();
+  renderSettingsOverlay();
+  renderLayerDiagram();
+  requestAnimationFrame(gameLoop);
+}
+
+gameLoop(lastTime);
+</script>
+</body>
+</html>
