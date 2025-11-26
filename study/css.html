@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CSS Reference for Developers</title>
+<style>
+  body {
+    font-family: Arial, sans-serif;
+    line-height: 1.5;
+    margin: 0;
+    padding: 0;
+    background: #f9f9f9;
+    color: #222;
+  }
+  h1 {
+    text-align: center;
+    background: #333;
+    color: #fff;
+    padding: 1rem;
+    margin: 0;
+  }
+  .category {
+    margin: 1rem;
+    border: 1px solid #ccc;
+    border-radius: 8px;
+    overflow: hidden;
+    background: #fff;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+  }
+  .category h2 {
+    margin: 0;
+    background: #eee;
+    padding: 0.75rem 1rem;
+    cursor: pointer;
+    user-select: none;
+  }
+  .category h2:hover {
+    background: #ddd;
+  }
+  .content {
+    display: none;
+    padding: 1rem;
+  }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 0.5rem;
+  }
+  th, td {
+    border: 1px solid #ccc;
+    padding: 0.4rem 0.6rem;
+    text-align: left;
+    vertical-align: top;
+  }
+  th {
+    background: #f0f0f0;
+  }
+  tr:nth-child(even) {
+    background: #fafafa;
+  }
+  @media (max-width: 600px) {
+    th, td {
+      font-size: 0.85rem;
+      padding: 0.3rem 0.5rem;
+    }
+  }
+</style>
+</head>
+<body>
+<h1>CSS Reference for Developers</h1>
+
+<div class="category">
+  <h2>Selectors</h2>
+  <div class="content">
+    <table>
+      <tr><th>Selector</th><th>Description</th><th>Notes</th></tr>
+      <tr><td>*</td><td>Universal selector; matches all elements</td><td>Standard</td></tr>
+      <tr><td>element</td><td>Type selector; matches all elements of a type (p, div)</td><td>Standard</td></tr>
+      <tr><td>.class</td><td>Class selector; matches elements with the class</td><td>Standard</td></tr>
+      <tr><td>#id</td><td>ID selector; matches a single element with the ID</td><td>Standard</td></tr>
+      <tr><td>[attribute]</td><td>Matches elements with the attribute</td><td>Standard</td></tr>
+      <tr><td>[attribute=value]</td><td>Attribute selector with specific value</td><td>Standard</td></tr>
+      <tr><td>[attribute~=value]</td><td>Attribute contains word</td><td>Standard</td></tr>
+      <tr><td>[attribute|=value]</td><td>Attribute starts with value (dash-separated)</td><td>Standard</td></tr>
+      <tr><td>[attribute^=value]</td><td>Attribute starts with value</td><td>Standard</td></tr>
+      <tr><td>[attribute$=value]</td><td>Attribute ends with value</td><td>Standard</td></tr>
+      <tr><td>[attribute*=value]</td><td>Attribute contains value</td><td>Standard</td></tr>
+      <tr><td>:hover</td><td>Matches element when hovered</td><td>Standard</td></tr>
+      <tr><td>:active</td><td>Matches element while active (pressed)</td><td>Standard</td></tr>
+      <tr><td>:focus</td><td>Matches element when focused</td><td>Standard</td></tr>
+      <tr><td>:first-child</td><td>Matches first child element of a parent</td><td>Standard</td></tr>
+      <tr><td>:last-child</td><td>Matches last child element of a parent</td><td>Standard</td></tr>
+      <tr><td>:nth-child(n)</td><td>Matches nth child element</td><td>Standard</td></tr>
+      <tr><td>:nth-of-type(n)</td><td>Matches nth child of type</td><td>Standard</td></tr>
+      <tr><td>::before</td><td>Inserts content before element</td><td>Standard</td></tr>
+      <tr><td>::after</td><td>Inserts content after element</td><td>Standard</td></tr>
+      <tr><td>::first-line</td><td>Targets first line of text</td><td>Standard</td></tr>
+      <tr><td>::first-letter</td><td>Targets first letter of text</td><td>Standard</td></tr>
+      <tr><td>:not(selector)</td><td>Negation pseudo-class</td><td>Standard</td></tr>
+    </table>
+  </div>
+</div>
+
+<div class="category">
+  <h2>Box Model</h2>
+  <div class="content">
+    <table>
+      <tr><th>Property</th><th>Description</th><th>Notes</th></tr>
+      <tr><td>width, height</td><td>Set content dimensions</td><td>Standard</td></tr>
+      <tr><td>padding</td><td>Space between content and border</td><td>Standard</td></tr>
+      <tr><td>margin</td><td>Space outside element border</td><td>Standard</td></tr>
+      <tr><td>border</td><td>Edge around element</td><td>Standard</td></tr>
+      <tr><td>box-sizing</td><td>Defines how width/height are calculated (content-box, border-box)</td><td>Standard</td></tr>
+      <tr><td>overflow</td><td>How content overflow is handled (visible, hidden, scroll, auto)</td><td>Standard</td></tr>
+      <tr><td>display</td><td>Element type (block, inline, flex, grid, none)</td><td>Standard</td></tr>
+      <tr><td>visibility</td><td>Show or hide element without affecting layout</td><td>Standard</td></tr>
+      <tr><td>z-index</td><td>Stacking order</td><td>Standard</td></tr>
+    </table>
+  </div>
+</div>
+
+<div class="category">
+  <h2>Typography & Text</h2>
+  <div class="content">
+    <table>
+      <tr><th>Property</th><th>Description</th><th>Notes</th></tr>
+      <tr><td>color</td><td>Text color</td><td>Standard</td></tr>
+      <tr><td>font-family</td><td>Font choice</td><td>Standard</td></tr>
+      <tr><td>font-size</td><td>Text size</td><td>Standard</td></tr>
+      <tr><td>font-weight</td><td>Boldness</td><td>Standard</td></tr>
+      <tr><td>font-style</td><td>Italic, oblique, normal</td><td>Standard</td></tr>
+      <tr><td>line-height</td><td>Space between lines</td><td>Standard</td></tr>
+      <tr><td>letter-spacing</td><td>Space between letters</td><td>Standard</td></tr>
+      <tr><td>text-align</td><td>Alignment (left, center, right, justify)</td><td>Standard</td></tr>
+      <tr><td>text-decoration</td><td>Underline, line-through, none</td><td>Standard</td></tr>
+      <tr><td>text-transform</td><td>Uppercase, lowercase, capitalize</td><td>Standard</td></tr>
+      <tr><td>white-space</td><td>How whitespace is handled (normal, nowrap, pre)</td><td>Standard</td></tr>
+      <tr><td>word-break</td><td>Break rules for long words</td><td>Standard</td></tr>
+      <tr><td>overflow-wrap</td><td>Line wrapping for overflow</td><td>Standard</td></tr>
+    </table>
+  </div>
+</div>
+
+<div class="category">
+  <h2>Backgrounds & Colors</h2>
+  <div class="content">
+    <table>
+      <tr><th>Property</th><th>Description</th><th>Notes</th></tr>
+      <tr><td>background-color</td><td>Fill color</td><td>Standard</td></tr>
+      <tr><td>background-image</td><td>Set an image</td><td>Standard</td></tr>
+      <tr><td>background-repeat</td><td>Repeat behavior (repeat, no-repeat, repeat-x)</td><td>Standard</td></tr>
+      <tr><td>background-position</td><td>Position of image</td><td>Standard</td></tr>
+      <tr><td>background-size</td><td>Scale image (cover, contain)</td><td>Standard</td></tr>
+      <tr><td>background-clip</td><td>Painting area (border-box, padding-box, content-box)</td><td>Standard</td></tr>
+      <tr><td>opacity</td><td>Element transparency</td><td>Standard</td></tr>
+    </table>
+  </div>
+</div>
+
+<div class="category">
+  <h2>Layout</h2>
+  <div class="content">
+    <table>
+      <tr><th>Property</th><th>Description</th><th>Notes</th></tr>
+      <tr><td>display</td><td>Layout type (block, inline, inline-block, flex, grid, none)</td><td>Standard</td></tr>
+      <tr><td>position</td><td>Positioning (static, relative, absolute, fixed, sticky)</td><td>Standard</td></tr>
+      <tr><td>top, right, bottom, left</td><td>Offset in positioned elements</td><td>Standard</td></tr>
+      <tr><td>float</td><td>Float element left/right</td><td>Standard, less used</td></tr>
+      <tr><td>clear</td><td>Control float clearing</td><td>Standard</td></tr>
+      <tr><td>flex</td><td>Flex container item property</td><td>Standard</td></tr>
+      <tr><td>flex-direction</td><td>Row or column</td><td>Standard</td></tr>
+      <tr><td>flex-wrap</td><td>Wrap or nowrap</td><td>Standard</td></tr>
+      <tr><td>justify-content</td><td>Alignment along main axis</td><td>Standard</td></tr>
+      <tr><td>align-items</td><td>Alignment along cross axis</td><td>Standard</td></tr>
+      <tr><td>align-content</td><td>Alignment of multiple lines</td><td>Standard</td></tr>
+      <tr><td>grid-template-columns, grid-template-rows</td><td>Define grid tracks</td><td>Standard</td></tr>
+      <tr><td>grid-template-areas</td><td>Named areas for layout</td><td>Standard</td></tr>
+      <tr><td>gap</td><td>Spacing between grid/flex items</td><td>Standard</td></tr>
+    </table>
+  </div>
+</div>
+
+<div class="category">
+  <h2>Transitions & Animations</h2>
+  <div class="content">
+    <table>
+      <tr><th>Property</th><th>Description</th><th>Notes</th></tr>
+      <tr><td>transition-property</td><td>Which properties to animate</td><td>Standard</td></tr>
+      <tr><td>transition-duration</td><td>Time in seconds</td><td>Standard</td></tr>
+      <tr><td>transition-timing-function</td><td>Speed curve</td><td>Standard</td></tr>
+      <tr><td>transition-delay</td><td>Delay before start</td><td>Standard</td></tr>
+      <tr><td>animation-name</td><td>Name of keyframes</td><td>Standard</td></tr>
+      <tr><td>animation-duration</td><td>Duration</td><td>Standard</td></tr>
+      <tr><td>animation-timing-function</td><td>Curve</td><td>Standard</td></tr>
+      <tr><td>animation-delay</td><td>Start delay</td><td>Standard</td></tr>
+      <tr><td>animation-iteration-count</td><td>Repeats</td><td>Standard</td></tr>
+      <tr><td>@keyframes</td><td>Define animation steps</td><td>Standard</td></tr>
+    </table>
+  </div>
+</div>
+
+<div class="category">
+  <h2>Media Queries & Responsive Design</h2>
+  <div class="content">
+    <table>
+      <tr><th>Keyword</th><th>Description</th><th>Notes</th></tr>
+      <tr><td>@media</td><td>Conditional styling based on viewport, device, or conditions</td><td>Standard</td></tr>
+      <tr><td>min-width, max-width</td><td>Width-based breakpoints</td><td>Standard</td></tr>
+      <tr><td>orientation</td><td>landscape or portrait</td><td>Standard</td></tr>
+      <tr><td>prefers-color-scheme</td><td>Detect dark/light mode</td><td>Standard</td></tr>
+      <tr><td>@container</td><td>Container queries</td><td>Experimental</td></tr>
+    </table>
+  </div>
+</div>
+
+<div class="category">
+  <h2>Variables / Custom Properties</h2>
+  <div class="content">
+    <table>
+      <tr><th>Feature</th><th>Description</th><th>Notes</th></tr>
+      <tr><td>--custom-name: value;</td><td>Define reusable value</td><td>Standard</td></tr>
+      <tr><td>var(--custom-name)</td><td>Use a variable</td><td>Standard</td></tr>
+      <tr><td>:root</td><td>Define global variables</td><td>Standard</td></tr>
+    </table>
+  </div>
+</div>
+
+<div class="category">
+  <h2>Functions & Calculations</h2>
+  <div class="content">
+    <table>
+      <tr><th>Function</th><th>Description</th><th>Notes</th></tr>
+      <tr><td>calc()</td><td>Compute values dynamically (width: calc(100% - 20px))</td><td>Standard</td></tr>
+      <tr><td>min(), max(), clamp()</td><td>Responsive sizing</td><td>Standard</td></tr>
+      <tr><td>rgba(), hsla()</td><td>Color with alpha</td><td>Standard</td></tr>
+      <tr><td>url()</td><td>Reference image or font</td><td>Standard</td></tr>
+      <tr><td>attr()</td><td>Content from attributes (limited)</td><td>Experimental</td></tr>
+    </table>
+  </div>
+</div>
+
+<div class="category">
+  <h2>Miscellaneous & Modern CSS</h2>
+  <div class="content">
+    <table>
+      <tr><th>Feature</th><th>Description</th><th>Notes</th></tr>
+      <tr><td>clip-path</td><td>Define visible area</td><td>Standard</td></tr>
+      <tr><td>filter</td><td>Visual effects (blur, brightness)</td><td>Standard</td></tr>
+      <tr><td>backdrop-filter</td><td>Effects on background</td><td>Standard</td></tr>
+      <tr><td>object-fit</td><td>Fit images/videos</td><td>Standard</td></tr>
+      <tr><td>scroll-behavior</td><td>Smooth scrolling</td><td>Standard</td></tr>
+      <tr><td>will-change</td><td>Hint for performance</td><td>Standard</td></tr>
+      <tr><td>@supports</td><td>Feature queries</td><td>Standard</td></tr>
+      <tr><td>contain</td><td>Containment for layout & performance</td><td>Standard</td></tr>
+    </table>
+  </div>
+</div>
+
+<script>
+  document.querySelectorAll('.category h2').forEach(header => {
+    header.addEventListener('click', () => {
+      const content = header.nextElementSibling;
+      content.style.display = content.style.display === 'block' ? 'none' : 'block';
+    });
+  });
+</script>
+</body>
+</html>
