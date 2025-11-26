@@ -8,20 +8,34 @@ body { font-family: Arial, sans-serif; margin: 20px; line-height: 1.6; }
 h1,h2 { border-bottom: 2px solid #ccc; padding-bottom: 5px; }
 .legend { margin-bottom: 20px; }
 .legend span { display: inline-block; width: 180px; padding: 5px; margin: 2px; color: white; font-weight: bold; }
-.structure { background-color: #4CAF50; }    /* Structure elements */
-.text { background-color: #2196F3; }        /* Text content elements */
-.media { background-color: #FF9800; }       /* Media elements */
-.forms { background-color: #9C27B0; }       /* Form elements */
-.table { background-color: #F44336; }       /* Table elements */
-.metadata { background-color: #607D8B; }    /* Metadata / info */
-.link { background-color: #00BCD4; }        /* Links / navigation */
-.interactive { background-color: #FF5722; } /* Interactive / scripting elements */
-.deprecated { background-color: #9E9E9E; }  /* Deprecated elements */
-table { border-collapse: collapse; width: 100%; margin-bottom: 40px; font-size: 12px; }
+.structure { background-color: #4CAF50; }    
+.text { background-color: #2196F3; }        
+.media { background-color: #FF9800; }       
+.forms { background-color: #9C27B0; }       
+.table { background-color: #F44336; }       
+.metadata { background-color: #607D8B; }    
+.link { background-color: #00BCD4; }        
+.interactive { background-color: #FF5722; } 
+.deprecated { background-color: #9E9E9E; }  
+table { border-collapse: collapse; width: 100%; margin-bottom: 40px; font-size: 12px; page-break-inside: auto; }
 th, td { border: 1px solid #ddd; padding: 6px; vertical-align: top; }
 th { background-color: #333; color: white; }
 tr:nth-child(even) { background-color: #f9f9f9; }
 code { font-family: monospace; background-color: #eee; padding: 2px 4px; border-radius: 3px; }
+
+/* Print-specific CSS */
+@media print {
+  body { margin: 10mm; font-size: 11pt; }
+  .legend span { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .structure, .text, .media, .forms, .table, .metadata, .link, .interactive, .deprecated {
+    -webkit-print-color-adjust: exact; 
+    print-color-adjust: exact;
+    color: white !important;
+  }
+  table, th, td { page-break-inside: avoid; }
+  tr { page-break-inside: avoid; page-break-after: auto; }
+  h1, h2 { color: black; border-color: black; }
+}
 </style>
 </head>
 <body>
