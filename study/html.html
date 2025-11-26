@@ -1,0 +1,482 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>All Current HTML Tags — Toggleable Orders & Explanations</title>
+  <style>
+    :root{--bg:#0f1724;--card:#0b1220;--muted:#9aa4b2;--accent:#60a5fa;--glass:rgba(255,255,255,0.035)}
+    html,body{height:100%;margin:0;font-family:Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial; background:linear-gradient(180deg,#071029 0%, #071621 60%);color:#e6eef6}
+    .wrap{max-width:1100px;margin:28px auto;padding:20px}
+    header{display:flex;gap:12px;align-items:center;justify-content:space-between}
+    h1{font-size:20px;margin:0}
+    .controls{display:flex;gap:8px;flex-wrap:wrap}
+    button.btn{background:var(--glass);border:1px solid rgba(255,255,255,0.04);padding:8px 12px;border-radius:10px;color:var(--accent);cursor:pointer}
+    button.btn.active{box-shadow:0 6px 18px rgba(0,0,0,0.45);background:linear-gradient(180deg,rgba(255,255,255,0.02),rgba(255,255,255,0.01));color:#dbeafe}
+    .note{color:var(--muted);font-size:13px}
+    .list-section{margin-top:18px;background:var(--card);padding:16px;border-radius:12px;border:1px solid rgba(255,255,255,0.02)}
+    .order{display:none}
+    .order.active{display:block}
+    details{background:rgba(255,255,255,0.02);padding:10px;border-radius:8px;margin:8px 0}
+    summary{font-weight:600;cursor:pointer}
+    .tags{margin-top:8px;font-family:monospace;font-size:13px;color:#cfe6ff;white-space:pre-wrap}
+    .explain{color:var(--muted);margin-top:8px}
+    .concrete{margin-top:8px;color:#bfe0ff}
+    footer{margin-top:18px;color:var(--muted);font-size:13px}
+    .small{font-size:12px;color:var(--muted)}
+    .toolbar{display:flex;gap:8px;align-items:center}
+    @media (max-width:600px){.wrap{padding:12px;margin:12px} h1{font-size:16px} button.btn{padding:8px 10px}}
+    .download{margin-left:8px}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <div>
+        <h1>All Current HTML Tags — Toggleable Orders & Explanations</h1>
+        <div class="note">Choose an order below. Expand any category for its explanation and three concrete examples.</div>
+      </div>
+      <div class="controls">
+        <div class="toolbar">
+          <button class="btn active" data-order="option1" id="btn1">Category-grouped (Dev view)</button>
+          <button class="btn" data-order="option4" id="btn4">Spec content-model grouped</button>
+          <button class="btn" data-order="recommended" id="btnR">Recommended (category + A–Z)</button>
+          <button class="btn download" id="download">Download HTML</button>
+        </div>
+      </div>
+    </header>
+
+    <section class="list-section">
+
+      <!-- OPTION 1: Category-grouped (Developer-Friendly) -->
+      <div id="option1" class="order active" aria-live="polite">
+        <h2>Option 1 — Grouped by Category (Developer-Friendly)</h2>
+
+        <!-- Document Structure -->
+        <details>
+          <summary><strong>Document Structure</strong></summary>
+          <p class="explain">These elements define the fundamental skeleton of every HTML document. They set up the HTML root, the document metadata container, and the part of the document that is actually rendered. Without these, a web page has no formal beginning or structure.</p>
+          <div class="concrete">
+            <ol>
+              <li><code>&lt;html&gt;</code> marks the document root and encloses all markup.</li>
+              <li><code>&lt;head&gt;</code> holds non-visible data like scripts, styles, and metadata.</li>
+              <li><code>&lt;body&gt;</code> contains all visible content (text, images, UI).</li>
+            </ol>
+          </div>
+          <div class="tags"><code>html, head, body, base, title</code></div>
+        </details>
+
+        <!-- Metadata -->
+        <details>
+          <summary><strong>Metadata</strong></summary>
+          <p class="explain">Metadata elements describe the document rather than appearing within its visible content. Browsers, search engines, and assistive technologies use this information to interpret the page’s properties, resources, and behavior.</p>
+          <div class="concrete">
+            <ol>
+              <li><code>&lt;meta&gt;</code> sets character encoding, viewport rules, or page descriptions.</li>
+              <li><code>&lt;link&gt;</code> attaches external resources such as CSS or manifests.</li>
+              <li><code>&lt;style&gt;</code> embeds CSS that affects page rendering.</li>
+            </ol>
+          </div>
+          <div class="tags"><code>meta, link, style</code></div>
+        </details>
+
+        <!-- Sections & Sectioning -->
+        <details>
+          <summary><strong>Sections &amp; Sectioning</strong></summary>
+          <p class="explain">Sectioning elements divide a page into meaningful regions for structure, navigation, and accessibility. They help define headings, page subsections, and document outlines.</p>
+          <div class="concrete">
+            <ol>
+              <li><code>&lt;article&gt;</code> is a self-contained piece like a blog post or news item.</li>
+              <li><code>&lt;nav&gt;</code> identifies a navigation area like a menu or table of contents.</li>
+              <li><code>&lt;header&gt;</code> contains introductory content such as titles or logos.</li>
+            </ol>
+          </div>
+          <div class="tags"><code>header, footer, main, section, article, nav, aside, h1–h6</code></div>
+        </details>
+
+        <!-- Grouping Content -->
+        <details>
+          <summary><strong>Grouping Content</strong></summary>
+          <p class="explain">These elements group blocks of content together, often for semantic meaning or for layout purposes. They typically produce block-level structures for paragraphs, figures, quotes, or generic containers.</p>
+          <div class="concrete">
+            <ol>
+              <li><code>&lt;p&gt;</code> creates a paragraph block.</li>
+              <li><code>&lt;blockquote&gt;</code> marks an extended quotation.</li>
+              <li><code>&lt;figure&gt;</code> wraps standalone content like images or charts; pair with <code>&lt;figcaption&gt;</code>.</li>
+            </ol>
+          </div>
+          <div class="tags"><code>p, div, blockquote, hr, pre, figure, figcaption</code></div>
+        </details>
+
+        <!-- Lists -->
+        <details>
+          <summary><strong>Lists</strong></summary>
+          <p class="explain">List elements create ordered, unordered, or descriptive lists of items. They structure repeated content in predictable ways and are essential for semantics and accessibility.</p>
+          <div class="concrete">
+            <ol>
+              <li><code>&lt;ul&gt;</code> displays an unordered (bulleted) list.</li>
+              <li><code>&lt;ol&gt;</code> displays an ordered (numbered) list.</li>
+              <li><code>&lt;dl&gt;</code> creates term-description pairs (definition lists).</li>
+            </ol>
+          </div>
+          <div class="tags"><code>ul, ol, li, dl, dt, dd</code></div>
+        </details>
+
+        <!-- Text-Level Semantics -->
+        <details>
+          <summary><strong>Text-Level Semantics</strong></summary>
+          <p class="explain">These elements annotate small sections of text with specific meanings, such as emphasis, importance, definitions, short quotations, annotations, or inline formatting. They represent fine-grained semantics.</p>
+          <div class="concrete">
+            <ol>
+              <li><code>&lt;em&gt;</code> marks emphasized text (often italic).</li>
+              <li><code>&lt;code&gt;</code> indicates inline code samples.</li>
+              <li><code>&lt;abbr&gt;</code> marks abbreviations and can provide expansions via attributes.</li>
+            </ol>
+          </div>
+          <div class="tags"><code>a, em, strong, small, s, cite, q, dfn, abbr, ruby, rt, rp, data, time, code, var, samp, kbd, sub, sup, i, b, mark, span, br, wbr</code></div>
+        </details>
+
+        <!-- Edits -->
+        <details>
+          <summary><strong>Edits</strong></summary>
+          <p class="explain">Edit elements represent additions and removals in a document. They help convey document history or highlight changed text in collaborative or dynamic environments.</p>
+          <div class="concrete">
+            <ol>
+              <li><code>&lt;ins&gt;</code> marks inserted text (often underlined/highlighted).</li>
+              <li><code>&lt;del&gt;</code> marks deleted text (often struck-through).</li>
+              <li>Used together, they help show revision history visibly in documents.</li>
+            </ol>
+          </div>
+          <div class="tags"><code>ins, del</code></div>
+        </details>
+
+        <!-- Embedded Content -->
+        <details>
+          <summary><strong>Embedded Content</strong></summary>
+          <p class="explain">These elements insert external resources such as images, audio, video, plug-ins, or nested browsing contexts. They allow the page to display or interact with non-HTML media.</p>
+          <div class="concrete">
+            <ol>
+              <li><code>&lt;img&gt;</code> embeds images (jpg, png, svg, webp).</li>
+              <li><code>&lt;video&gt;</code> provides native video playback with controls.</li>
+              <li><code>&lt;iframe&gt;</code> embeds another HTML page inside the current one.</li>
+            </ol>
+          </div>
+          <div class="tags"><code>img, picture, source, track, video, audio, iframe, embed, object, param</code></div>
+        </details>
+
+        <!-- Tables -->
+        <details>
+          <summary><strong>Tables</strong></summary>
+          <p class="explain">Table elements provide structured, grid-like arrangements of data. They define tabular layouts using rows, columns, headers, and cells, along with optional captions and grouping.</p>
+          <div class="concrete">
+            <ol>
+              <li><code>&lt;table&gt;</code> defines the table container.</li>
+              <li><code>&lt;tr&gt;</code> defines each row; contains <code>&lt;td&gt;</code> or <code>&lt;th&gt;</code>.</li>
+              <li><code>&lt;caption&gt;</code> labels the table with a short description.</li>
+            </ol>
+          </div>
+          <div class="tags"><code>table, caption, thead, tbody, tfoot, tr, th, td, colgroup, col</code></div>
+        </details>
+
+        <!-- Forms -->
+        <details>
+          <summary><strong>Forms</strong></summary>
+          <p class="explain">Form elements enable user input and interaction through controls like text fields, buttons, selectors, and feedback widgets. They are the foundation of interactive and data-gathering web applications.</p>
+          <div class="concrete">
+            <ol>
+              <li><code>&lt;input&gt;</code> supports text, checkbox, radio, file, date, and other controls.</li>
+              <li><code>&lt;select&gt;</code> creates dropdowns with <code>&lt;option&gt;</code> choices.</li>
+              <li><code>&lt;form&gt;</code> wraps controls and defines submission behavior (action, method).</li>
+            </ol>
+          </div>
+          <div class="tags"><code>form, label, input, button, select, datalist, optgroup, option, textarea, fieldset, legend, output, progress, meter</code></div>
+        </details>
+
+        <!-- Interactive Elements -->
+        <details>
+          <summary><strong>Interactive Elements</strong></summary>
+          <p class="explain">These elements create user-controlled interactive widgets—expandable sections, dialogs, and summaries—that provide built-in behaviors without script requirements.</p>
+          <div class="concrete">
+            <ol>
+              <li><code>&lt;details&gt;</code> creates a collapsible section the user can open or close.</li>
+              <li><code>&lt;summary&gt;</code> provides the clickable heading for a <code>&lt;details&gt;</code>.</li>
+              <li><code>&lt;dialog&gt;</code> can be used for modal or popup windows (with <code>showModal()</code> from JS).</li>
+            </ol>
+          </div>
+          <div class="tags"><code>details, summary, dialog</code></div>
+        </details>
+
+        <!-- Scripting -->
+        <details>
+          <summary><strong>Scripting</strong></summary>
+          <p class="explain">Scripting elements support client-side logic, template content, and declarative insertion points. They allow script execution or hold markup that is processed dynamically by JavaScript.</p>
+          <div class="concrete">
+            <ol>
+              <li><code>&lt;script&gt;</code> executes JavaScript in the page.</li>
+              <li><code>&lt;template&gt;</code> stores inert markup for cloning by scripts.</li>
+              <li><code>&lt;slot&gt;</code> defines insertion points for Web Components' Shadow DOM.</li>
+            </ol>
+          </div>
+          <div class="tags"><code>script, noscript, template, slot, canvas</code></div>
+        </details>
+
+      </div>
+
+      <!-- OPTION 4: Spec content-model grouped -->
+      <div id="option4" class="order" aria-live="polite">
+        <h2>Option 4 — Spec Content-Model Grouped (WHATWG)</h2>
+
+        <details>
+          <summary><strong>Metadata Content</strong></summary>
+          <p class="explain">Metadata tags provide information about the document itself—its character encoding, title, scripts, styles, relationships to other resources, and configuration that affects the page before it renders.</p>
+          <div class="concrete"><ol>
+            <li><code>&lt;meta charset="utf-8"&gt;</code> tells the browser how to decode characters.</li>
+            <li><code>&lt;link rel="stylesheet"&gt;</code> ensures CSS is available for layout phases.</li>
+            <li><code>&lt;script&gt;</code> in the head may run while the page is parsing.</li>
+          </ol></div>
+          <div class="tags"><code>&lt;base&gt;, &lt;link&gt;, &lt;meta&gt;, &lt;noscript&gt;, &lt;script&gt;, &lt;style&gt;, &lt;template&gt;, &lt;title&gt;</code></div>
+        </details>
+
+        <details>
+          <summary><strong>Flow Content</strong></summary>
+          <p class="explain">Flow content includes the majority of elements that appear in the body, representing the main structure and content of a webpage. Nearly everything that participates in normal document layout is flow content.</p>
+          <div class="concrete"><ol>
+            <li><code>&lt;p&gt;</code> is a fundamental block of flow content (paragraphs).</li>
+            <li><code>&lt;div&gt;</code> is a generic flow container used for grouping and layout.</li>
+            <li><code>&lt;main&gt;</code> identifies the primary flow region of a document.</li>
+          </ol></div>
+          <div class="tags"><code>a, abbr, address, article, aside, audio, b, bdi, bdo, blockquote, br, button, canvas, cite, code, data, datalist, details, dfn, div, dl, em, embed, fieldset, figure, footer, form, h1–h6, header, hr, i, iframe, img, input, kbd, label, main, map, mark, meter, nav, noscript, object, ol, output, p, picture, pre, progress, q, ruby, s, samp, script, section, select, small, span, strong, sub, sup, svg, table, template, textarea, time, u, ul, var, video, wbr</code></div>
+        </details>
+
+        <details>
+          <summary><strong>Sectioning Content</strong></summary>
+          <p class="explain">Sectioning elements define the hierarchical outline of a document and affect how headings are interpreted by browsers and assistive tech.</p>
+          <div class="concrete"><ol>
+            <li><code>&lt;section&gt;</code> groups thematically related content.</li>
+            <li><code>&lt;article&gt;</code> denotes independent, self-contained content.</li>
+            <li><code>&lt;nav&gt;</code> identifies navigation links.</li>
+          </ol></div>
+          <div class="tags"><code>article, aside, nav, section</code></div>
+        </details>
+
+        <details>
+          <summary><strong>Heading Content</strong></summary>
+          <p class="explain">Heading content identifies titles and headings that contribute to the document outline and structure.</p>
+          <div class="concrete"><ol>
+            <li><code>&lt;h1&gt;</code> is the highest level heading for a page or section.</li>
+            <li><code>&lt;h3&gt;</code> represents a nested subsection under h2.</li>
+            <li><code>&lt;hgroup&gt;</code> groups a set of headings (title + subtitle).</li>
+          </ol></div>
+          <div class="tags"><code>h1, h2, h3, h4, h5, h6, hgroup</code></div>
+        </details>
+
+        <details>
+          <summary><strong>Phrasing Content</strong></summary>
+          <p class="explain">Phrasing content comprises the inline elements that make up the text flow inside paragraphs and other text containers—things that affect meaning or styling within sentences.</p>
+          <div class="concrete"><ol>
+            <li><code>&lt;em&gt;</code> emphasizes text inline.</li>
+            <li><code>&lt;code&gt;</code> shows inline code.</li>
+            <li><code>&lt;span&gt;</code> offers a generic inline wrapper for styling.</li>
+          </ol></div>
+          <div class="tags"><code>a, abbr, audio, b, bdi, bdo, br, button, canvas, cite, code, data, datalist, del, dfn, em, embed, i, iframe, img, input, ins, kbd, label, map, mark, math, meter, noscript, object, output, picture, progress, q, ruby, s, samp, script, select, slot, small, span, strong, sub, sup, svg, template, textarea, time, u, var, video, wbr</code></div>
+        </details>
+
+        <details>
+          <summary><strong>Embedded Content</strong></summary>
+          <p class="explain">Embedded elements insert external or non-HTML resources that often form their own rendering contexts (images, media, plugins, vector graphics).</p>
+          <div class="concrete"><ol>
+            <li><code>&lt;img&gt;</code> embeds image files directly into the flow.</li>
+            <li><code>&lt;svg&gt;</code> embeds vector graphics that can scale without loss.</li>
+            <li><code>&lt;iframe&gt;</code> creates a nested browsing context with its own document.</li>
+          </ol></div>
+          <div class="tags"><code>audio, canvas, embed, iframe, img, math, object, picture, svg, video</code></div>
+        </details>
+
+        <details>
+          <summary><strong>Interactive Content</strong></summary>
+          <p class="explain">Interactive content represents elements specifically intended for user interaction—controls, focusable widgets, or elements that require user input.</p>
+          <div class="concrete"><ol>
+            <li><code>&lt;button&gt;</code> is a focusable, clickable control used for actions.</li>
+            <li><code>&lt;input&gt;</code> collects user data (text, selection, file, etc.).</li>
+            <li><code>&lt;details&gt;</code> toggles display of nested content without custom scripts.</li>
+          </ol></div>
+          <div class="tags"><code>a (with href), button, details, embed, iframe, input, label, select, textarea, video (with controls)</code></div>
+        </details>
+
+        <details>
+          <summary><strong>Form-Associated Content</strong></summary>
+          <p class="explain">These elements participate in form submission, labeling, grouping, and validation; they are tied to how form data is collected and transmitted.</p>
+          <div class="concrete"><ol>
+            <li><code>&lt;fieldset&gt;</code> groups related form controls and can affect form semantics.</li>
+            <li><code>&lt;label&gt;</code> associates text with a form control for accessibility.</li>
+            <li><code>&lt;option&gt;</code> represents a selectable item inside a <code>&lt;select&gt;</code>.</li>
+          </ol></div>
+          <div class="tags"><code>button, fieldset, form, input, label, meter, object, output, progress, select, textarea</code></div>
+        </details>
+      </div>
+
+      <!-- RECOMMENDED: Category + Alphabetical -->
+      <div id="recommended" class="order" aria-live="polite">
+        <h2>Recommended — Category + Alphabetical</h2>
+
+        <!-- Document Structure -->
+        <details>
+          <summary><strong>Document Structure</strong></summary>
+          <p class="explain">These elements define the core frame of every HTML document. They establish the root of the document, the metadata container, and the section that holds all visible content. Without these elements, an HTML document has no formal structure for rendering or interpretation.</p>
+          <div class="concrete"><ol>
+            <li><code>&lt;base&gt;</code> specifies the base URL for relative links.</li>
+            <li><code>&lt;body&gt;</code> contains the page’s visible content.</li>
+            <li><code>&lt;head&gt;</code> stores metadata the browser uses before rendering.</li>
+          </ol></div>
+          <div class="tags"><code>base, body, head, html, title</code></div>
+        </details>
+
+        <!-- Metadata -->
+        <details>
+          <summary><strong>Metadata</strong></summary>
+          <p class="explain">Metadata elements describe the document rather than appearing as part of the displayed content. They supply instructions, references, and descriptions that browsers, search engines, and assistive technologies rely on to process the page correctly.</p>
+          <div class="concrete"><ol>
+            <li><code>&lt;link&gt;</code> attaches stylesheets and manifests.</li>
+            <li><code>&lt;meta&gt;</code> declares encoding, viewport, and other page-level data.</li>
+            <li><code>&lt;style&gt;</code> embeds internal CSS rules for the document.</li>
+          </ol></div>
+          <div class="tags"><code>link, meta, style</code></div>
+        </details>
+
+        <!-- Sectioning -->
+        <details>
+          <summary><strong>Sectioning</strong></summary>
+          <p class="explain">Sectioning elements divide the page into meaningful structural regions used for navigation, readability, and accessibility. They define thematic groups, navigational areas, and headings that contribute to the page’s logical outline.</p>
+          <div class="concrete"><ol>
+            <li><code>&lt;article&gt;</code> for standalone content like posts.</li>
+            <li><code>&lt;aside&gt;</code> for tangential content such as sidebars.</li>
+            <li><code>&lt;footer&gt;</code> for footer information at the end of a section/page.</li>
+          </ol></div>
+          <div class="tags"><code>article, aside, footer, header, h1, h2, h3, h4, h5, h6, main, nav, section</code></div>
+        </details>
+
+        <!-- Grouping -->
+        <details>
+          <summary><strong>Grouping</strong></summary>
+          <p class="explain">These elements organize blocks of content into meaningful or functional groupings. They structure paragraphs, figures, quotes, and general-purpose containers that contribute to layout and document clarity.</p>
+          <div class="concrete"><ol>
+            <li><code>&lt;blockquote&gt;</code> for extended quotes.</li>
+            <li><code>&lt;div&gt;</code> as a generic block container.</li>
+            <li><code>&lt;figure&gt;</code> with <code>&lt;figcaption&gt;</code> for standalone media + caption.</li>
+          </ol></div>
+          <div class="tags"><code>blockquote, div, figure, figcaption, hr, p, pre</code></div>
+        </details>
+
+        <!-- Lists -->
+        <details>
+          <summary><strong>Lists</strong></summary>
+          <p class="explain">List elements provide structured representations of grouped items, whether ordered, unordered, or descriptive. They offer a natural way to display repeated or enumerated content.</p>
+          <div class="concrete"><ol>
+            <li><code>&lt;dd&gt;</code> description of a term in a definition list.</li>
+            <li><code>&lt;dl&gt;</code> groups term-description pairs.</li>
+            <li><code>&lt;li&gt;</code> individual list item inside <code>&lt;ul&gt;</code> or <code>&lt;ol&gt;</code>.</li>
+          </ol></div>
+          <div class="tags"><code>dd, dl, dt, li, ol, ul</code></div>
+        </details>
+
+        <!-- Text-Level -->
+        <details>
+          <summary><strong>Text-Level</strong></summary>
+          <p class="explain">These elements annotate small portions of text with meaning or formatting—emphasis, code, abbreviations, inline highlights, and other in-sentence semantics.</p>
+          <div class="concrete"><ol>
+            <li><code>&lt;a&gt;</code> creates an inline link to other resources.</li>
+            <li><code>&lt;abbr&gt;</code> marks an abbreviation; often includes a full form in a title attribute.</li>
+            <li><code>&lt;code&gt;</code> shows short code samples inline within text.</li>
+          </ol></div>
+          <div class="tags"><code>a, abbr, b, cite, code, data, dfn, em, i, kbd, mark, q, rp, rt, ruby, s, samp, small, span, strong, sub, sup, time, var, wbr</code></div>
+        </details>
+
+        <!-- Embedded -->
+        <details>
+          <summary><strong>Embedded</strong></summary>
+          <p class="explain">Embedded elements insert external or non-HTML resources that often come with their own rendering rules—images, audio/video, vector graphics, or nested content.</p>
+          <div class="concrete"><ol>
+            <li><code>&lt;audio&gt;</code> plays sound tracks in the page.</li>
+            <li><code>&lt;embed&gt;</code> loads a plugin or third-party resource.</li>
+            <li><code>&lt;picture&gt;</code> allows responsive images with multiple sources.</li>
+          </ol></div>
+          <div class="tags"><code>audio, embed, iframe, img, object, param, picture, source, track, video</code></div>
+        </details>
+
+        <!-- Tables -->
+        <details>
+          <summary><strong>Tables</strong></summary>
+          <p class="explain">Table elements allow structured, grid-like presentation of data, with rows, columns, headers, and captions to make relational info readable.</p>
+          <div class="concrete"><ol>
+            <li><code>&lt;caption&gt;</code> gives a table a short descriptive label.</li>
+            <li><code>&lt;colgroup&gt;</code> and <code>&lt;col&gt;</code> let you group and style columns.</li>
+            <li><code>&lt;thead&gt;</code> groups header rows for accessibility and styling.</li>
+          </ol></div>
+          <div class="tags"><code>caption, col, colgroup, table, tbody, td, tfoot, th, thead, tr</code></div>
+        </details>
+
+        <!-- Forms -->
+        <details>
+          <summary><strong>Forms</strong></summary>
+          <p class="explain">Form-associated elements enable user input, selection, and submission; they power interactive forms, controls, and validation features in web apps.</p>
+          <div class="concrete"><ol>
+            <li><code>&lt;button&gt;</code> submits or triggers actions inside forms.</li>
+            <li><code>&lt;textarea&gt;</code> collects multi-line user input.</li>
+            <li><code>&lt;select&gt;</code> lets users choose one or more <code>&lt;option&gt;</code>s.</li>
+          </ol></div>
+          <div class="tags"><code>button, datalist, fieldset, form, input, label, legend, meter, option, optgroup, output, progress, select, textarea</code></div>
+        </details>
+
+        <!-- Interactive -->
+        <details>
+          <summary><strong>Interactive</strong></summary>
+          <p class="explain">Interactive elements are UI controls that provide default behaviors for user interaction—toggling, dialoguing, or focusable input.</p>
+        </details>
+
+      </div>
+
+    </section>
+
+    <footer class="small">Generated by ChatGPT — lists follow WHATWG & common browser usage. Use the buttons above to switch views and download the single-file HTML.</footer>
+  </div>
+
+  <script>
+    // Simple UI: switch visible order
+    const buttons = document.querySelectorAll('button.btn[data-order]');
+    const orders = document.querySelectorAll('.order');
+    buttons.forEach(btn=>btn.addEventListener('click', ()=>{
+      buttons.forEach(b=>b.classList.remove('active'));
+      btn.classList.add('active');
+      const which = btn.getAttribute('data-order');
+      orders.forEach(o=>o.classList.toggle('active', o.id===which));
+      // scroll to top of list-section for mobile
+      document.querySelector('.list-section').scrollIntoView({behavior:'smooth'});
+    }));
+
+    // Download the current HTML (this page as single-file)
+    document.getElementById('download').addEventListener('click', ()=>{
+      const doctype = '<!doctype html>
+';
+      const html = document.documentElement.outerHTML;
+      const blob = new Blob([doctype + html], {type:'text/html'});
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'html-tags-toggleable.html';
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    });
+
+    // Accessibility: allow toggling details with Enter/Space when focused
+    document.querySelectorAll('summary').forEach(s=>{
+      s.addEventListener('keydown', e=>{
+        if(e.key==='Enter' || e.key===' '){
+          e.preventDefault(); s.parentElement.open = !s.parentElement.open;
+        }
+      });
+    });
+  </script>
+</body>
+</html>
