@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Complete HTML5 Reference</title>
+<style>
+body { font-family: Arial, sans-serif; margin: 20px; line-height: 1.6; }
+h1,h2 { border-bottom: 2px solid #ccc; padding-bottom: 5px; }
+.legend { margin-bottom: 20px; }
+.legend span { display: inline-block; width: 180px; padding: 5px; margin: 2px; color: white; font-weight: bold; }
+.structure { background-color: #4CAF50; }    /* Structure elements */
+.text { background-color: #2196F3; }        /* Text content elements */
+.media { background-color: #FF9800; }       /* Media elements */
+.forms { background-color: #9C27B0; }       /* Form elements */
+.table { background-color: #F44336; }       /* Table elements */
+.metadata { background-color: #607D8B; }    /* Metadata / info */
+.link { background-color: #00BCD4; }        /* Links / navigation */
+.interactive { background-color: #FF5722; } /* Interactive / scripting elements */
+.deprecated { background-color: #9E9E9E; }  /* Deprecated elements */
+table { border-collapse: collapse; width: 100%; margin-bottom: 40px; font-size: 12px; }
+th, td { border: 1px solid #ddd; padding: 6px; vertical-align: top; }
+th { background-color: #333; color: white; }
+tr:nth-child(even) { background-color: #f9f9f9; }
+code { font-family: monospace; background-color: #eee; padding: 2px 4px; border-radius: 3px; }
+</style>
+</head>
+<body>
+
+<h1>Complete HTML5 Reference</h1>
+
+<div class="legend">
+<h2>Legend</h2>
+<span class="structure">Structure</span>
+<span class="text">Text</span>
+<span class="media">Media</span>
+<span class="forms">Forms</span>
+<span class="table">Tables</span>
+<span class="metadata">Metadata</span>
+<span class="link">Links</span>
+<span class="interactive">Interactive</span>
+<span class="deprecated">Deprecated</span>
+</div>
+
+<h2>Global Attributes</h2>
+<table>
+<thead><tr><th>Attribute</th><th>Description</th></tr></thead>
+<tbody>
+<tr><td>accesskey</td><td>Shortcut key to focus element</td></tr>
+<tr><td>autocapitalize</td><td>Control capitalization behavior</td></tr>
+<tr><td>class</td><td>CSS class name(s)</td></tr>
+<tr><td>contenteditable</td><td>Whether element is editable</td></tr>
+<tr><td>data-*</td><td>Custom data attributes</td></tr>
+<tr><td>dir</td><td>Text direction</td></tr>
+<tr><td>draggable</td><td>Element draggable</td></tr>
+<tr><td>hidden</td><td>Hides the element</td></tr>
+<tr><td>id</td><td>Unique identifier</td></tr>
+<tr><td>lang</td><td>Language code</td></tr>
+<tr><td>spellcheck</td><td>Spellcheck behavior</td></tr>
+<tr><td>style</td><td>Inline CSS</td></tr>
+<tr><td>tabindex</td><td>Tab order</td></tr>
+<tr><td>title</td><td>Tooltip text</td></tr>
+<tr><td>translate</td><td>Specifies whether to translate</td></tr>
+<tr><td>role</td><td>ARIA role</td></tr>
+</tbody>
+</table>
+
+<h2>HTML5 Elements</h2>
+<table>
+<thead><tr><th>Element</th><th>Category</th><th>Description</th><th>Common Attributes</th><th>ARIA Roles</th></tr></thead>
+<tbody>
+<!-- Structure Elements -->
+<tr><td>&lt;!DOCTYPE&gt;</td><td class="structure">Structure</td><td>Defines document type</td><td>—</td><td>—</td></tr>
+<tr><td>&lt;html&gt;</td><td class="structure">Structure</td><td>Root element</td><td>lang, xmlns</td><td>—</td></tr>
+<tr><td>&lt;head&gt;</td><td class="structure">Structure</td><td>Contains metadata</td><td>—</td><td>—</td></tr>
+<tr><td>&lt;body&gt;</td><td class="structure">Structure</td><td>Main content</td><td>id, class</td><td>document</td></tr>
+<tr><td>&lt;header&gt;</td><td class="structure">Structure</td><td>Intro / navigation content</td><td>id, class</td><td>banner</td></tr>
+<tr><td>&lt;footer&gt;</td><td class="structure">Structure</td><td>Footer content</td><td>id, class</td><td>contentinfo</td></tr>
+<tr><td>&lt;section&gt;</td><td class="structure">Structure</td><td>Thematic content section</td><td>id, class</td><td>region</td></tr>
+<tr><td>&lt;article&gt;</td><td class="structure">Structure</td><td>Independent content</td><td>id, class</td><td>article</td></tr>
+<tr><td>&lt;aside&gt;</td><td class="structure">Structure</td><td>Sidebar content</td><td>id, class</td><td>complementary</td></tr>
+<tr><td>&lt;main&gt;</td><td class="structure">Structure</td><td>Main content</td><td>id, class</td><td>main</td></tr>
+<tr><td>&lt;nav&gt;</td><td class="link">Links</td><td>Navigation links</td><td>id, class</td><td>navigation</td></tr>
+<tr><td>&lt;div&gt;</td><td class="structure">Structure</td><td>Generic container</td><td>id, class, style</td><td>—</td></tr>
+
+<!-- Text Elements -->
+<tr><td>&lt;p&gt;</td><td class="text">Text</td><td>Paragraph</td><td>id, class, style</td><td>paragraph</td></tr>
+<tr><td>&lt;h1&gt; - &lt;h6&gt;</td><td class="text">Text</td><td>Headings</td><td>id, class</td><td>heading</td></tr>
+<tr><td>&lt;span&gt;</td><td class="text">Text</td><td>Inline container</td><td>id, class, style</td><td>—</td></tr>
+<tr><td>&lt;strong&gt;</td><td class="text">Text</td><td>Important text</td><td>—</td><td>—</td></tr>
+<tr><td>&lt;em&gt;</td><td class="text">Text</td><td>Emphasized text</td><td>—</td><td>—</td></tr>
+<tr><td>&lt;blockquote&gt;</td><td class="text">Text</td><td>Block quote</td><td>cite</td><td>blockquote</td></tr>
+<tr><td>&lt;code&gt;</td><td class="text">Text</td><td>Inline code</td><td>—</td><td>code</td></tr>
+<tr><td>&lt;pre&gt;</td><td class="text">Text</td><td>Preformatted text</td><td>—</td><td>pre</td></tr>
+<tr><td>&lt;q&gt;</td><td class="text">Text</td><td>Short inline quote</td><td>cite</td><td>quote</td></tr>
+<tr><td>&lt;abbr&gt;</td><td class="text">Text</td><td>Abbreviation</td><td>title</td><td>abbr</td></tr>
+<tr><td>&lt;mark&gt;</td><td class="text">Text</td><td>Highlighted text</td><td>—</td><td>—</td></tr>
+<tr><td>&lt;time&gt;</td><td class="text">Text</td><td>Date / time</td><td>datetime></td><td>time</td></tr>
+
+<!-- Media Elements -->
+<tr><td>&lt;img&gt;</td><td class="media">Media</td><td>Image</td><td>src, alt, width, height, loading</td><td>img</td></tr>
+<tr><td>&lt;audio&gt;</td><td class="media">Media</td><td>Audio content</td><td>src, controls, autoplay, loop, muted</td><td>audio</td></tr>
+<tr><td>&lt;video&gt;</td><td class="media">Media</td><td>Video content</td><td>src, controls, autoplay, width, height, loop, muted</td><td>video</td></tr>
+<tr><td>&lt;source&gt;</td><td class="media">Media</td><td>Media source</td><td>src, type</td><td>—</td></tr>
+<tr><td>&lt;picture&gt;</td><td class="media">Media</td><td>Responsive image container</td><td>id, class</td><td>figure</td></tr>
+<tr><td>&lt;track&gt;</td><td class="media">Media</td><td>Text track for video/audio</td><td>kind, src, srclang, label, default</td><td>—</td></tr>
+<tr><td>&lt;canvas&gt;</td><td class="media">Media</td><td>Graphics drawing</td><td>width, height</td><td>graphics-document</td></tr>
+<tr><td>&lt;figure&gt;</td><td class="media">Media</td><td>Media figure</td><td>id, class</td><td>figure</td></tr>
+<tr><td>&lt;figcaption&gt;</td><td class="media">Media</td><td>Figure caption</td><td>—</td><td>caption</td></tr>
+
+<!-- Form Elements -->
+<tr><td>&lt;form&gt;</td><td class="forms">Forms</td><td>Form container</td><td>action, method, enctype, novalidate, autocomplete</td><td>form</td></tr>
+<tr><td>&lt;input&gt;</td><td class="forms">Forms</td><td>Input field</td><td>type, name, value, placeholder, required, disabled, readonly, min, max, step, pattern</td><td>textbox, checkbox, radio, button</td></tr>
+<tr><td>&lt;textarea&gt;</td><td class="forms">Forms</td><td>Multi-line input</td><td>name, rows, cols, placeholder, required, disabled, readonly</td><td>textbox</td></tr>
+<tr><td>&lt;button&gt;</td><td class="forms">Forms</td><td>Button</td><td>type, name, value, disabled</td><td>button</td></tr>
+<tr><td>&lt;select&gt;</td><td class="forms">Forms</td><td>Dropdown</td><td>name, multiple, required, disabled</td><td>listbox</td></tr>
+<tr><td>&lt;option&gt;</td><td class="forms">Forms</td><td>Dropdown option</td><td>value, selected, disabled</td><td>option</td></tr>
+<tr><td>&lt;label&gt;</td><td class="forms">Forms</td><td>Label</td><td>for</td><td>label</td></tr>
+<tr><td>&lt;fieldset&gt;</td><td class="forms">Forms</td><td>Group related fields</td><td>disabled, form, name</td><td>group</td></tr>
+<tr><td>&lt;legend&gt;</td><td class="forms">Forms</td><td>Caption for fieldset</td><td>—</td><td>legend</td></tr>
+<tr><td>&lt;datalist&gt;</td><td class="forms">Forms</td><td>Predefined options</td><td>id</td><td>list</td></tr>
+<tr><td>&lt;output&gt;</td><td class="forms">Forms</td><td>Calculation result</td><td>for, name</td><td>status</td></tr>
+<tr><td>&lt;progress&gt;</td><td class="forms">Forms</td><td>Progress bar</td><td>value, max</td><td>progressbar</td></tr>
+<tr><td>&lt;meter&gt;</td><td class="forms">Forms</td><td>Scalar measurement</td><td>value, min, max, low, high, optimum</td><td>meter</td></tr>
+
+<!-- Table Elements -->
+<tr><td>&lt;table&gt;</td><td class="table">Tables</td><td>Table container</td><td>border, summary</td><td>table</td></tr>
+<tr><td>&lt;thead&gt;</td><td class="table">Tables</td><td>Table header</td><td>—</td><td>rowgroup</td></tr>
+<tr><td>&lt;tbody&gt;</td><td class="table">Tables</td><td>Table body</td><td>—</td><td>rowgroup</td></tr>
+<tr><td>&lt;tfoot&gt;</td><td class="table">Tables</td><td>Table footer</td><td>—</td><td>rowgroup</td></tr>
+<tr><td>&lt;tr&gt;</td><td class="table">Tables</td><td>Table row</td><td>—</td><td>row</td></tr>
+<tr><td>&lt;th&gt;</td><td class="table">Tables</td><td>Header cell</td><td>colspan, rowspan, scope</td><td>columnheader, rowheader</td></tr>
+<tr><td>&lt;td&gt;</td><td class="table">Tables</td><td>Data cell</td><td>colspan, rowspan</td><td>cell</td></tr>
+<tr><td>&lt;caption&gt;</td><td class="table">Tables</td><td>Table caption</td><td>—</td><td>caption</td></tr>
+
+<!-- Metadata Elements -->
+<tr><td>&lt;title&gt;</td><td class="metadata">Metadata</td><td>Document title</td><td>—</td><td>—</td></tr>
+<tr><td>&lt;meta&gt;</td><td class="metadata">Metadata</td><td>Document metadata</td><td>name, content, charset, http-equiv</td><td>—</td></tr>
+<tr><td>&lt;link&gt;</td><td class="metadata">Metadata</td><td>External resource</td><td>rel, href, type, media</td><td>—</td></tr>
+<tr><td>&lt;style&gt;</td><td class="metadata">Metadata</td><td>Internal CSS</td><td>type, media</td><td>—</td></tr>
+<tr><td>&lt;script&gt;</td><td class="interactive">Interactive</td><td>JavaScript</td><td>src, type, async, defer, crossorigin</td><td>—</td></tr>
+<tr><td>&lt;noscript&gt;</td><td class="metadata">Metadata</td><td>Content if JS disabled</td><td>—</td><td>—</td></tr>
+
+<!-- Links -->
+<tr><td>&lt;a&gt;</td><td class="link">Links</td><td>Anchor / hyperlink</td><td>href, target, rel, download, type</td><td>link</td></tr>
+
+<!-- Interactive Elements -->
+<tr><td>&lt;details&gt;</td><td class="interactive">Interactive</td><td>Disclosure widget</td><td>open</td><td>group</td></tr>
+<tr><td>&lt;summary&gt;</td><td class="interactive">Interactive</td><td>Summary for details</td><td>—</td><td>button</td></tr>
+<tr><td>&lt;dialog&gt;</td><td class="interactive">Interactive</td><td>Dialog box</td><td>open</td><td>dialog</td></tr>
+<tr><td>&lt;menu&gt;</td><td class="interactive">Interactive</td><td>Menu / context menu</td><td>type, label</td><td>menu</td></tr>
+
+<!-- Deprecated / Obsolete Elements -->
+<tr><td>&lt;font&gt;</td><td class="deprecated">Deprecated</td><td>Font styling</td><td>color, face, size</td><td>—</td></tr>
+<tr><td>&lt;center&gt;</td><td class="deprecated">Deprecated</td><td>Centered content</td><td>—</td><td>—</td></tr>
+<tr><td>&lt;b&gt;</td><td class="text">Text</td><td>Bold text (use &lt;strong&gt;)</td><td>—</td><td>—</td></tr>
+<tr><td>&lt;i&gt;</td><td class="text">Text</td><td>Italic text (use &lt;em&gt;)</td><td>—</td><td>—</td></tr>
+
+</tbody>
+</table>
+
+<p><em>Tip: All elements accept global attributes and can have ARIA roles for accessibility.</em></p>
+
+</body>
+</html>
